@@ -1,0 +1,482 @@
+/* ---- the canvas ----
+   A dot grid on the app's own grey, so the bands and cards read as sitting
+   on something. Its pitch and offset follow the drawing (set inline), so a pan
+   moves the dots too and reads as movement rather than cards sliding. */
+.viewport {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  background-image: radial-gradient(circle, var(--border-strong) 1px, transparent 1.3px);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.viewport[data-panning] {
+  cursor: grabbing;
+}
+
+.world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+.viewport [data-layer='bronze'] {
+  --layer: var(--layer-bronze);
+  --layer-ink: var(--layer-bronze-ink);
+  --layer-tint: var(--layer-bronze-tint);
+  --layer-edge: var(--layer-bronze-edge);
+  --layer-sheen: var(--layer-bronze-sheen);
+}
+
+.viewport [data-layer='silver'] {
+  --layer: var(--layer-silver);
+  --layer-ink: var(--layer-silver-ink);
+  --layer-tint: var(--layer-silver-tint);
+  --layer-edge: var(--layer-silver-edge);
+  --layer-sheen: var(--layer-silver-sheen);
+}
+
+.viewport [data-layer='gold'] {
+  --layer: var(--layer-gold);
+  --layer-ink: var(--layer-gold-ink);
+  --layer-tint: var(--layer-gold-tint);
+  --layer-edge: var(--layer-gold-edge);
+  --layer-sheen: var(--layer-gold-sheen);
+}
+
+/* ---- layer bands ----
+   A frosted white lane, not a coloured box: the dot grid fades out behind
+   it, the layer's tint glows faintly down from the top, and the metal itself
+   shows only in the bar along the top edge. The tables are what should hold
+   the eye; the band only says which layer they belong to. */
+.band {
+  position: absolute;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, var(--layer-tint) 0, transparent 160px),
+    color-mix(in srgb, var(--bg-panel) 72%, transparent);
+  box-shadow: var(--shadow-card);
+}
+
+.band::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--layer-sheen);
+}
+
+.layerHead {
+  position: absolute;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  transition:
+    background var(--t-fast),
+    box-shadow var(--t-fast);
+}
+
+/* Pinned to the canvas top, cards scroll up underneath it; a frosted backing
+   keeps it legible over them. At rest it sits in its band's own glow. */
+.layerHead[data-pinned] {
+  background: color-mix(in srgb, var(--bg-panel) 92%, transparent);
+  box-shadow: var(--shadow-raise);
+}
+
+.layerDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--layer-sheen);
+  box-shadow: 0 0 0 2px var(--layer-tint);
+}
+
+.layerName {
+  flex: none;
+  font-size: var(--fs-small);
+  font-weight: 700;
+  color: var(--layer-ink);
+}
+
+.layerCount {
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--layer-tint);
+  box-shadow: inset 0 0 0 1px var(--layer-edge);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--layer-ink);
+}
+
+.layerBlurb {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--fs-caption);
+  color: var(--text-4);
+}
+
+/* ---- lines ----
+   Grey at rest. On a traced path, the accent, dashed and moving downstream,
+   so which way the data flows is seen rather than inferred from arrowheads.
+   Off the path, faded right back. */
+.edges {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.edge {
+  fill: none;
+  stroke: var(--graph-edge-primary);
+  stroke-width: 1.5;
+  transition:
+    opacity var(--t-base),
+    stroke var(--t-base);
+}
+
+.edge[data-state='active'] {
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 6 5;
+  animation: flow 0.9s linear infinite;
+}
+
+.edge[data-state='dimmed'] {
+  opacity: 0.22;
+}
+
+@keyframes flow {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+
+.arrow {
+  fill: none;
+  stroke: var(--graph-edge-primary);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.arrow[data-state='active'] {
+  stroke: var(--accent);
+}
+
+/* ---- tables ----
+   228 wide: LINEAGE_GEOMETRY.nodeWidth. The height is set inline — the
+   54px header (nodeHeight) alone, or the header and an opened column list. */
+.node {
+  position: absolute;
+  width: 228px;
+  transition: opacity var(--t-base);
+}
+
+.node[data-dimmed] {
+  opacity: 0.38;
+}
+
+/* The outline is an inset shadow rather than a border, so it takes no room:
+   the header is exactly nodeHeight and every column row sits where
+   COLUMN_GEOMETRY says, which is where its lines are drawn to. */
+.card {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-xl);
+  background: var(--bg-panel);
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    var(--shadow-card);
+  transition: box-shadow var(--t-fast);
+}
+
+.node:hover .card {
+  box-shadow:
+    inset 0 0 0 1px var(--border-strong),
+    var(--shadow-card-hover);
+}
+
+.node[data-focus] .card {
+  box-shadow:
+    inset 0 0 0 1px var(--accent),
+    var(--shadow-card);
+}
+
+.node[data-selected] .card {
+  box-shadow:
+    inset 0 0 0 1px var(--accent),
+    0 0 0 3px var(--accent-ring),
+    var(--shadow-card-hover);
+}
+
+.cardHead {
+  flex: none;
+  width: 100%;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: none;
+  text-align: left;
+}
+
+/* Room for the chevron, which sits over the header's right end. */
+.node[data-level='column'] .cardHead {
+  padding-right: 38px;
+}
+
+.columnToggle {
+  position: absolute;
+  top: 14px;
+  right: 10px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-4);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
+}
+
+.columnToggle:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.columnToggle svg {
+  transition: transform var(--t-base);
+}
+
+.columnToggle[aria-expanded='true'] {
+  color: var(--accent);
+}
+
+.columnToggle[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.cardIcon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--layer-tint);
+  box-shadow: inset 0 0 0 1px var(--layer-edge);
+  color: var(--layer-ink);
+}
+
+.cardBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cardName,
+.cardMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A size up from body text: the canvas usually opens below 100%, and a name
+   is what has to stay legible there. */
+.cardName {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cardMeta {
+  font-size: var(--fs-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+}
+
+.health {
+  flex: none;
+  align-self: flex-start;
+  width: 7px;
+  height: 7px;
+  margin-top: 12px;
+  border-radius: 50%;
+}
+
+.health[data-tone='warn'] {
+  background: var(--warn-strong);
+}
+
+.health[data-tone='danger'] {
+  background: var(--danger);
+}
+
+/* Straddles the top border like a legend, so it marks the card without
+   taking a line inside it. */
+.focusTag {
+  position: absolute;
+  left: 14px;
+  top: 0;
+  z-index: 1;
+  padding: 0 7px;
+  transform: translateY(-50%);
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--bg-panel);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  line-height: 16px;
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* ---- expanders ----
+   On the card's edge, level with the header where its table lines attach —
+   27px is half of nodeHeight, so they stay put when the card opens below.
+   "+3" always shows, because it says there is more; "−" waits for the card
+   to be hovered or focused. */
+.handle {
+  position: absolute;
+  top: 27px;
+  z-index: 2;
+  min-width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--bg-panel);
+  color: var(--text-2);
+  box-shadow: var(--shadow-raise);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  transition:
+    opacity var(--t-fast),
+    background var(--t-fast),
+    color var(--t-fast),
+    border-color var(--t-fast);
+}
+
+.handle[data-side='upstream'] {
+  left: 0;
+  transform: translate(-50%, -50%);
+}
+
+.handle[data-side='downstream'] {
+  right: 0;
+  transform: translate(50%, -50%);
+}
+
+.handle[data-state='more'] {
+  border-color: var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.handle[data-state='less'] {
+  opacity: 0;
+}
+
+.node:hover .handle,
+.node:focus-within .handle {
+  opacity: 1;
+}
+
+.handle:hover {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--bg-panel);
+}
+
+/* ---- zoom ---- */
+.controls {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-card-hover);
+  cursor: default;
+}
+
+.controlButton {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-3);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
+}
+
+.controlButton:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.controlButton:disabled {
+  color: var(--text-disabled);
+}
+
+.zoomValue {
+  min-width: 42px;
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--text-3);
+}
+
+.controlDivider {
+  width: 1px;
+  height: 16px;
+  margin: 0 3px;
+  background: var(--border);
+}

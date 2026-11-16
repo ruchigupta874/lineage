@@ -1,0 +1,154 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--control-h);
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: var(--fs-body);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    filter var(--t-fast),
+    background var(--t-fast),
+    border-color var(--t-fast),
+    box-shadow var(--t-fast),
+    transform var(--t-fast);
+}
+
+.button:hover:not(:disabled) {
+  filter: brightness(0.96);
+}
+
+/* A half-pixel is enough to read as a press without shifting the layout. */
+.button:active:not(:disabled) {
+  transform: translateY(0.5px);
+  filter: brightness(0.93);
+}
+
+.button:disabled {
+  opacity: 0.4;
+}
+
+/* ---- sizes ---- */
+.sm {
+  height: 29px;
+  padding: 0 11px;
+  font-size: var(--fs-small);
+}
+
+.lg {
+  height: var(--control-h-lg);
+  padding: 0 15px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-base);
+}
+
+/* Hero scale. The only control on a page gets to be bigger than the ones that
+   sit in a toolbar. */
+.xl {
+  height: 40px;
+  padding: 0 20px;
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-lg);
+}
+.icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-md);
+}
+
+/* ---- variants ---- */
+/* The primary action, wherever it sits: the brand ramp plus a coloured shadow.
+   There is at most one of these per region, so it can afford to be the loudest
+   thing in it. */
+.primary {
+  background: var(--gradient-accent);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+  box-shadow: var(--shadow-accent);
+}
+
+.primary:hover:not(:disabled) {
+  filter: none;
+  box-shadow: var(--shadow-accent-lift);
+  transform: translateY(-1px);
+}
+
+.primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: var(--shadow-accent);
+  filter: brightness(0.96);
+}
+
+.secondary {
+  background: var(--bg-panel);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--bg-hover);
+  filter: none;
+}
+
+.ghost {
+  background: transparent;
+  border-color: var(--border-input);
+  border-style: dashed;
+  color: var(--text-3);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  filter: none;
+}
+
+.approve {
+  background: var(--ok-bg);
+  border-color: var(--ok-border);
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.approveActive {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #fff;
+  font-weight: 600;
+}
+
+.reject {
+  background: var(--bg-panel);
+  border-color: var(--danger-border);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.rejectActive {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  font-weight: 600;
+}
+
+.warn {
+  background: var(--warn);
+  border-color: var(--warn);
+  color: #fff;
+  font-weight: 600;
+}
+
+.warnOutline {
+  background: var(--bg-panel);
+  border-color: #e0c68c;
+  color: var(--warn);
+}
+
+.block {
+  width: 100%;
+}

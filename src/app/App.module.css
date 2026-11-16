@@ -1,0 +1,7 @@
+/* The page fills the window; its own panes scroll, never the document. */
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

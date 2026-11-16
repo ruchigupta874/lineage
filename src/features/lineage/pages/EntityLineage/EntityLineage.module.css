@@ -1,0 +1,305 @@
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background: var(--bg-panel);
+}
+
+/* One set of properties per layer, so a dot, a tag and a tint all read from
+   the same four values. */
+.layout [data-layer='bronze'] {
+  --layer: var(--layer-bronze);
+  --layer-ink: var(--layer-bronze-ink);
+  --layer-on: var(--layer-bronze-on);
+  --layer-tint: var(--layer-bronze-tint);
+  --layer-edge: var(--layer-bronze-edge);
+  --layer-sheen: var(--layer-bronze-sheen);
+}
+
+.layout [data-layer='silver'] {
+  --layer: var(--layer-silver);
+  --layer-ink: var(--layer-silver-ink);
+  --layer-on: var(--layer-silver-on);
+  --layer-tint: var(--layer-silver-tint);
+  --layer-edge: var(--layer-silver-edge);
+  --layer-sheen: var(--layer-silver-sheen);
+}
+
+.layout [data-layer='gold'] {
+  --layer: var(--layer-gold);
+  --layer-ink: var(--layer-gold-ink);
+  --layer-on: var(--layer-gold-on);
+  --layer-tint: var(--layer-gold-tint);
+  --layer-edge: var(--layer-gold-edge);
+  --layer-sheen: var(--layer-gold-sheen);
+}
+
+.layerDot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--layer-sheen);
+}
+
+/* ---- asset rail ---- */
+.rail {
+  width: 252px;
+  flex: 0 0 252px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+
+.railHead {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.railTitle {
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.railBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 8px 16px;
+}
+
+.group + .group {
+  margin-top: 12px;
+}
+
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  color: var(--layer-ink);
+}
+
+.groupCount {
+  margin-left: auto;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-4);
+}
+
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item {
+  width: 100%;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 10px;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-2);
+  font-size: var(--fs-body);
+  text-align: left;
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
+}
+
+.item:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.item[aria-current='true'] {
+  background: var(--bg-selected);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.itemIcon {
+  color: var(--text-4);
+}
+
+.item[aria-current='true'] .itemIcon {
+  color: var(--accent);
+}
+
+.itemName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemHealth {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.itemHealth[data-tone='warn'] {
+  background: var(--warn-strong);
+}
+
+.itemHealth[data-tone='danger'] {
+  background: var(--danger);
+}
+
+.itemSkeleton {
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+}
+
+.empty {
+  padding: 24px 12px;
+  font-size: var(--fs-small);
+  color: var(--text-4);
+  text-align: center;
+}
+
+/* ---- stage ---- */
+.stage {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.stageHead {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.focusIcon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: var(--layer-sheen);
+  color: var(--layer-on);
+  box-shadow: var(--shadow-raise);
+}
+
+.focusBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.focusTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.focusName {
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: var(--ls-title);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layerTag {
+  flex: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--layer-tint);
+  box-shadow: inset 0 0 0 1px var(--layer-edge);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  color: var(--layer-ink);
+}
+
+.focusMeta {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fqn {
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  color: var(--text-4);
+}
+
+.hint {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-caption);
+  color: var(--text-4);
+}
+
+/* Below this the hint and the level switch together would squeeze the focus
+   name; the canvas still works without the hint. */
+@media (max-width: 1500px) {
+  .hint {
+    display: none;
+  }
+}
+
+.canvasArea {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* ---- loading ---- */
+.skeleton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 72px;
+  background: var(--bg-app);
+}
+
+.skeletonBand {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.skeletonRows {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
