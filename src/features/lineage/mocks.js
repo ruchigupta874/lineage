@@ -1,4 +1,4 @@
-import { ASSET_KIND, HEALTH, LAYER } from './constants';
+import { ASSET_KIND, HEALTH, LAYER, TRANSFORM } from './constants';
 
 /**
  * The brand360 catalog, bronze to gold.
@@ -12,6 +12,9 @@ import { ASSET_KIND, HEALTH, LAYER } from './constants';
  * a silver table built from another silver table (a layer two columns wide),
  * a view built on a gold table, one stale and one failing branch, and raw
  * tables wide enough (15-18 columns) that an opened card has to fold some.
+ *
+ * Column lineage is in COLUMN_LINEAGE at the foot: for every silver and gold
+ * column, the columns it was made from and the logic that made it.
  */
 const CATALOG = 'brand360';
 
@@ -33,6 +36,9 @@ const T = {
   hcpMaster: 'silver.silver_hcp_master',
   territoryDim: 'silver.silver_territory_dim',
   brand360: 'gold.gold_brand360',
+  brand360Weekly: 'gold.gold_brand360_weekly',
+  hcpEngagement: 'gold.gold_hcp_engagement',
+  salesPerformance: 'gold.gold_sales_performance',
 };
 
 /** `name type` pairs, so a schema reads as one line per column. */
@@ -53,7 +59,7 @@ const asset = (layer, name, fields) => ({
   ...fields,
 });
 
-export const LINEAGE_ASSETS = [
+const ASSETS = [
   /* ---- gold ---- */
   asset(LAYER.gold, 'gold_brand360', {
     description: 'Weekly brand scorecard: sales, patients on therapy and campaign reach.',
@@ -439,3 +445,349 @@ export const LINEAGE_ASSETS = [
     ),
   }),
 ];
+
+/* ---- column lineage ----
+   Every silver and gold column: the kind of step that made it, the logic as a
+   pipeline would write it, and the columns it read. Bronze columns have none —
+   they are where the data enters. Inputs are always columns of the asset's own
+   `upstream` tables, so a column trace never leaves the table graph. */
+
+/** Columns of one asset, by name: `bronzeSales('quantity')`. */
+const columnsOf = (assetId) => (name) => `${assetId}.${name}`;
+const made = (kind, logic, ...from) => ({ kind, logic, from });
+
+const bronzeSales = columnsOf(T.bronzeSales);
+const productMaster = columnsOf(T.productMaster);
+const rwePatient = columnsOf(T.rwePatient);
+const campaignEmail = columnsOf(T.campaignEmail);
+const smsEngagement = columnsOf(T.smsEngagement);
+const contentUsage = columnsOf(T.contentUsage);
+const campaignCalendar = columnsOf(T.campaignCalendar);
+const hcpProfile = columnsOf(T.hcpProfile);
+const territoryAlignment = columnsOf(T.territoryAlignment);
+const salesFact = columnsOf(T.salesFact);
+const rweFact = columnsOf(T.rweFact);
+const campaignFact = columnsOf(T.campaignFact);
+const brandCampaign = columnsOf(T.brandCampaign);
+const hcpMaster = columnsOf(T.hcpMaster);
+const territoryDim = columnsOf(T.territoryDim);
+const brand360 = columnsOf(T.brand360);
+
+const K = TRANSFORM;
+const LOADED_AT = made(K.system, 'current_timestamp()  -- when this batch was written');
+const FX_JOIN = '\n-- JOIN fx_daily fx ON fx.currency = s.currency';
+const PRODUCT_JOIN = '\n-- JOIN product_master p ON p.product_code = s.product_code';
+const TERRITORY_JOIN = '\n-- JOIN silver_territory_dim t ON t.territory_code = sf.territory_code';
+const LAST_90_DAYS = 'cf.touched_at >= current_date() - INTERVAL 90 DAYS';
+
+const COLUMN_LINEAGE = {
+  /* ---- silver ---- */
+  [T.salesFact]: {
+    sale_id: made(K.direct, 's.sale_id', bronzeSales('sale_id')),
+    sale_date: made(K.renamed, 's.order_date AS sale_date', bronzeSales('order_date')),
+    product_id: made(K.renamed, 's.product_code AS product_id', bronzeSales('product_code')),
+    brand: made(K.lookup, `p.brand${PRODUCT_JOIN}`, productMaster('brand')),
+    therapeutic_area: made(
+      K.lookup,
+      `p.therapeutic_area${PRODUCT_JOIN}`,
+      productMaster('therapeutic_area'),
+    ),
+    customer_id: made(K.renamed, 's.customer_code AS customer_id', bronzeSales('customer_code')),
+    territory_code: made(K.direct, 's.territory_code', bronzeSales('territory_code')),
+    units: made(K.derived, 'ABS(s.quantity)', bronzeSales('quantity')),
+    gross_sales_usd: made(
+      K.derived,
+      `s.gross_amount * fx.rate_to_usd${FX_JOIN}`,
+      bronzeSales('gross_amount'),
+      bronzeSales('currency'),
+    ),
+    discount_usd: made(
+      K.derived,
+      `s.discount_amount * fx.rate_to_usd${FX_JOIN}`,
+      bronzeSales('discount_amount'),
+      bronzeSales('currency'),
+    ),
+    net_sales_usd: made(
+      K.derived,
+      `(s.gross_amount - s.discount_amount) * fx.rate_to_usd${FX_JOIN}`,
+      bronzeSales('gross_amount'),
+      bronzeSales('discount_amount'),
+      bronzeSales('currency'),
+    ),
+    is_return: made(K.derived, "s.order_type = 'RE'", bronzeSales('order_type')),
+    _loaded_at: LOADED_AT,
+    _batch_id: made(K.system, 'pipeline.batch_id()'),
+  },
+  [T.rweFact]: {
+    patient_key: made(K.derived, 'sha2(r.patient_token, 256)', rwePatient('patient_token')),
+    age_band: made(
+      K.derived,
+      [
+        'CASE',
+        "  WHEN year(current_date()) - r.birth_year < 40 THEN 'under 40'",
+        "  WHEN year(current_date()) - r.birth_year < 65 THEN '40-64'",
+        "  ELSE '65+'",
+        'END',
+      ].join('\n'),
+      rwePatient('birth_year'),
+    ),
+    gender: made(K.derived, 'UPPER(r.gender)', rwePatient('gender')),
+    region: made(K.direct, 'r.region', rwePatient('region')),
+    indication: made(
+      K.lookup,
+      'icd.indication\n-- JOIN icd10_indication icd ON icd.code = r.diagnosis_code',
+      rwePatient('diagnosis_code'),
+    ),
+    product_id: made(K.renamed, 'r.product_code AS product_id', rwePatient('product_code')),
+    therapy_start: made(K.direct, 'r.therapy_start', rwePatient('therapy_start')),
+    persistence_days: made(
+      K.derived,
+      'datediff(date_add(r.last_fill_date, r.days_supply), r.therapy_start)',
+      rwePatient('last_fill_date'),
+      rwePatient('days_supply'),
+      rwePatient('therapy_start'),
+    ),
+    is_persistent: made(
+      K.derived,
+      'datediff(date_add(r.last_fill_date, r.days_supply), r.therapy_start) >= 180',
+      rwePatient('last_fill_date'),
+      rwePatient('days_supply'),
+      rwePatient('therapy_start'),
+    ),
+    _loaded_at: LOADED_AT,
+  },
+  [T.campaignFact]: {
+    touch_id: made(
+      K.unioned,
+      ['e.send_id', 'UNION ALL s.message_sid', 'UNION ALL c.view_id'].join('\n'),
+      campaignEmail('send_id'),
+      smsEngagement('message_sid'),
+      contentUsage('view_id'),
+    ),
+    campaign_code: made(
+      K.unioned,
+      'UPPER(TRIM(campaign_code))\n-- one branch per channel (email, sms, content), UNION ALL',
+      campaignEmail('campaign_code'),
+      smsEngagement('campaign_code'),
+      contentUsage('campaign_code'),
+    ),
+    hcp_key: made(
+      K.lookup,
+      'x.hcp_key\n-- JOIN hcp_xref x ON x.source_id = hcp_id, in each branch',
+      campaignEmail('hcp_id'),
+      smsEngagement('hcp_id'),
+      contentUsage('hcp_id'),
+    ),
+    channel: made(K.constant, "'email' | 'sms' | 'content'  -- set by each branch"),
+    touched_at: made(
+      K.unioned,
+      ['e.sent_at', 'UNION ALL s.sent_at', 'UNION ALL c.viewed_at'].join('\n'),
+      campaignEmail('sent_at'),
+      smsEngagement('sent_at'),
+      contentUsage('viewed_at'),
+    ),
+    engaged: made(
+      K.derived,
+      [
+        '-- email',
+        'e.opened OR e.clicked',
+        '-- sms',
+        's.replied',
+        '-- content',
+        'c.duration_sec >= 30',
+      ].join('\n'),
+      campaignEmail('opened'),
+      campaignEmail('clicked'),
+      smsEngagement('replied'),
+      contentUsage('duration_sec'),
+    ),
+    engagement_score: made(
+      K.derived,
+      [
+        '-- email',
+        '0.3 * e.opened + 0.7 * e.clicked',
+        '-- sms',
+        'IF(s.replied, 1.0, 0.2)',
+        '-- content',
+        'LEAST(c.duration_sec / 120, 1.0)',
+      ].join('\n'),
+      campaignEmail('opened'),
+      campaignEmail('clicked'),
+      smsEngagement('replied'),
+      contentUsage('duration_sec'),
+    ),
+    _loaded_at: LOADED_AT,
+  },
+  [T.brandCampaign]: {
+    campaign_code: made(
+      K.derived,
+      'UPPER(TRIM(k.campaign_code))',
+      campaignCalendar('campaign_code'),
+    ),
+    campaign_name: made(K.direct, 'k.campaign_name', campaignCalendar('campaign_name')),
+    brand: made(K.direct, 'k.brand', campaignCalendar('brand')),
+    product_id: made(
+      K.lookup,
+      'p.product_code AS product_id\n-- JOIN product_master p ON p.brand = k.brand',
+      productMaster('product_code'),
+    ),
+    channel: made(K.derived, 'LOWER(k.channel)', campaignCalendar('channel')),
+    start_date: made(K.direct, 'k.start_date', campaignCalendar('start_date')),
+    end_date: made(K.direct, 'k.end_date', campaignCalendar('end_date')),
+    budget_usd: made(K.renamed, 'k.budget AS budget_usd', campaignCalendar('budget')),
+  },
+  [T.hcpMaster]: {
+    hcp_key: made(K.derived, 'sha2(h.onekey_id, 256)', hcpProfile('onekey_id')),
+    npi: made(K.direct, 'h.npi', hcpProfile('npi')),
+    full_name: made(
+      K.derived,
+      "concat_ws(' ', initcap(h.first_name), initcap(h.last_name))",
+      hcpProfile('first_name'),
+      hcpProfile('last_name'),
+    ),
+    specialty: made(K.direct, 'h.specialty', hcpProfile('specialty')),
+    zip: made(K.derived, 'left(h.practice_zip, 5)', hcpProfile('practice_zip')),
+    is_active: made(K.derived, "h.status = 'ACTIVE'", hcpProfile('status')),
+  },
+  [T.territoryDim]: {
+    territory_code: made(K.direct, 'a.territory_code', territoryAlignment('territory_code')),
+    territory_name: made(K.direct, 'a.territory_name', territoryAlignment('territory_name')),
+    region: made(K.direct, 'a.region', territoryAlignment('region')),
+    rep_id: made(K.direct, 'a.rep_id', territoryAlignment('rep_id')),
+    hcp_count: made(
+      K.aggregated,
+      'COUNT(DISTINCT m.hcp_key)\n-- JOIN silver_hcp_master m ON m.zip = a.zip',
+      hcpMaster('hcp_key'),
+      territoryAlignment('zip'),
+    ),
+  },
+
+  /* ---- gold ---- */
+  [T.brand360]: {
+    brand: made(K.direct, 'sf.brand  -- grouping key', salesFact('brand')),
+    week_start: made(K.derived, "date_trunc('week', sf.sale_date)", salesFact('sale_date')),
+    net_sales_usd: made(K.aggregated, 'SUM(sf.net_sales_usd)', salesFact('net_sales_usd')),
+    gross_sales_usd: made(K.aggregated, 'SUM(sf.gross_sales_usd)', salesFact('gross_sales_usd')),
+    units: made(K.aggregated, 'SUM(sf.units)', salesFact('units')),
+    patients_on_therapy: made(
+      K.aggregated,
+      'COUNT(DISTINCT rf.patient_key) FILTER (WHERE rf.is_persistent)',
+      rweFact('patient_key'),
+      rweFact('is_persistent'),
+    ),
+    new_patients: made(
+      K.aggregated,
+      "COUNT(DISTINCT rf.patient_key)\n  FILTER (WHERE date_trunc('week', rf.therapy_start) = week_start)",
+      rweFact('patient_key'),
+      rweFact('therapy_start'),
+    ),
+    avg_persistence_days: made(
+      K.aggregated,
+      'AVG(rf.persistence_days)',
+      rweFact('persistence_days'),
+    ),
+    campaign_touches: made(K.aggregated, 'COUNT(cf.touch_id)', campaignFact('touch_id')),
+    engaged_touches: made(K.aggregated, 'COUNT_IF(cf.engaged)', campaignFact('engaged')),
+    engaged_hcps: made(
+      K.aggregated,
+      'COUNT(DISTINCT cf.hcp_key) FILTER (WHERE cf.engaged)',
+      campaignFact('hcp_key'),
+      campaignFact('engaged'),
+    ),
+    engagement_rate: made(
+      K.derived,
+      'COUNT_IF(cf.engaged) / NULLIF(COUNT(cf.touch_id), 0)',
+      campaignFact('engaged'),
+      campaignFact('touch_id'),
+    ),
+    active_campaigns: made(
+      K.aggregated,
+      'COUNT(DISTINCT cf.campaign_code)  -- campaigns with a touch that week',
+      campaignFact('campaign_code'),
+    ),
+    spend_usd: made(
+      K.aggregated,
+      'SUM(bc.budget_usd / datediff(bc.end_date, bc.start_date) * 7)\n-- each budget spread evenly over its campaign; one week of it',
+      brandCampaign('budget_usd'),
+      brandCampaign('start_date'),
+      brandCampaign('end_date'),
+    ),
+    cost_per_engagement: made(
+      K.derived,
+      'spend_usd / NULLIF(COUNT_IF(cf.engaged), 0)',
+      brandCampaign('budget_usd'),
+      campaignFact('engaged'),
+    ),
+    sales_per_spend: made(
+      K.derived,
+      'SUM(sf.net_sales_usd) / NULLIF(spend_usd, 0)',
+      salesFact('net_sales_usd'),
+      brandCampaign('budget_usd'),
+    ),
+  },
+  [T.brand360Weekly]: {
+    brand: made(K.direct, 'g.brand', brand360('brand')),
+    week_start: made(K.direct, 'g.week_start', brand360('week_start')),
+    net_sales_usd: made(K.direct, 'g.net_sales_usd', brand360('net_sales_usd')),
+    wow_sales_change: made(
+      K.derived,
+      'g.net_sales_usd\n  / LAG(g.net_sales_usd) OVER (PARTITION BY g.brand ORDER BY g.week_start)\n  - 1',
+      brand360('net_sales_usd'),
+    ),
+    engaged_hcps: made(K.direct, 'g.engaged_hcps', brand360('engaged_hcps')),
+    spend_usd: made(K.direct, 'g.spend_usd', brand360('spend_usd')),
+    sales_per_spend: made(K.direct, 'g.sales_per_spend', brand360('sales_per_spend')),
+  },
+  [T.hcpEngagement]: {
+    hcp_key: made(K.direct, 'm.hcp_key  -- grouping key', hcpMaster('hcp_key')),
+    specialty: made(K.direct, 'm.specialty', hcpMaster('specialty')),
+    region: made(
+      K.lookup,
+      'geo.region\n-- JOIN zip_region geo ON geo.zip = m.zip',
+      hcpMaster('zip'),
+    ),
+    touches_90d: made(
+      K.aggregated,
+      `COUNT(cf.touch_id)\n  FILTER (WHERE ${LAST_90_DAYS})`,
+      campaignFact('touch_id'),
+      campaignFact('touched_at'),
+    ),
+    engaged_touches_90d: made(
+      K.aggregated,
+      `COUNT_IF(cf.engaged AND ${LAST_90_DAYS})`,
+      campaignFact('engaged'),
+      campaignFact('touched_at'),
+    ),
+    last_touch_at: made(K.aggregated, 'MAX(cf.touched_at)', campaignFact('touched_at')),
+    preferred_channel: made(
+      K.aggregated,
+      'max_by(cf.channel, cf.engagement_score)',
+      campaignFact('channel'),
+      campaignFact('engagement_score'),
+    ),
+  },
+  [T.salesPerformance]: {
+    territory_code: made(K.direct, 'sf.territory_code', salesFact('territory_code')),
+    region: made(K.lookup, `t.region${TERRITORY_JOIN}`, territoryDim('region')),
+    rep_id: made(K.lookup, `t.rep_id${TERRITORY_JOIN}`, territoryDim('rep_id')),
+    month: made(K.derived, "date_trunc('month', sf.sale_date)", salesFact('sale_date')),
+    net_sales_usd: made(K.aggregated, 'SUM(sf.net_sales_usd)', salesFact('net_sales_usd')),
+    units: made(K.aggregated, 'SUM(sf.units)', salesFact('units')),
+    quota_usd: made(
+      K.lookup,
+      'q.quota_usd\n-- JOIN sales_quota q ON q.rep_id = t.rep_id AND q.month = month',
+      territoryDim('rep_id'),
+    ),
+    attainment_pct: made(
+      K.derived,
+      'SUM(sf.net_sales_usd) / NULLIF(q.quota_usd, 0) * 100',
+      salesFact('net_sales_usd'),
+      territoryDim('rep_id'),
+    ),
+  },
+};
+
+export const LINEAGE_ASSETS = ASSETS.map((entry) => ({
+  ...entry,
+  derivations: COLUMN_LINEAGE[entry.id] ?? {},
+}));

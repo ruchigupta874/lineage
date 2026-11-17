@@ -21,6 +21,8 @@ export const PATHS = {
   close: <path d="M4.2 4.2 11.8 11.8M11.8 4.2 4.2 11.8" />,
   chevronDown: <path d="m3.8 6.2 4.2 4.2 4.2-4.2" />,
   arrowRight: <path d="M2.8 8h10.4M9.2 4l4 4-4 4" />,
+  arrowLeft: <path d="M13.2 8H2.8M6.8 4l-4 4 4 4" />,
+  check: <path d="m3.4 8.4 3 3 6.2-6.6" />,
   info: (
     <>
       <circle cx="8" cy="8" r="6.2" />
@@ -31,6 +33,13 @@ export const PATHS = {
     <>
       <rect x="2.2" y="2.6" width="11.6" height="10.8" rx="1.4" />
       <path d="M2.2 6.2h11.6M2.2 9.8h11.6M6.4 6.2v7.2" />
+    </>
+  ),
+  /* One column of a table, its cells marked: a column, not the whole table. */
+  column: (
+    <>
+      <rect x="4.8" y="2.4" width="6.4" height="11.2" rx="1.4" />
+      <path d="M4.8 6.2h6.4M4.8 9.8h6.4" />
     </>
   ),
   expand: <path d="M9.6 2.4h4v4M6.4 13.6h-4v-4M13.6 2.4 9.2 6.8M2.4 13.6l4.4-4.4" />,

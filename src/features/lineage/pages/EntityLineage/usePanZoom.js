@@ -31,6 +31,8 @@ export function usePanZoom({ onBackgroundClick }) {
   const [view, setView] = useState({ x: 0, y: 0, k: 1 });
   const [isPanning, setIsPanning] = useState(false);
 
+  // What a new size does to the view is the canvas's call (LineageCanvas
+  // re-frames or re-centres); this only reports it.
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) return undefined;

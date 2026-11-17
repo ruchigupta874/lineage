@@ -17,6 +17,9 @@ export const COLUMN_GEOMETRY = {
   maxRows: 8,
 };
 
+/** `decimal(18,2)` reads as `decimal`: precision is for the details panel, not a 26px row. */
+export const shortType = (type) => type.replace(/\(.*\)$/, '');
+
 /** The columns an opened card lists, and how tall that makes it. Closed, it is the header alone. */
 function cardFor(asset, { isOpen, showAll }) {
   const geo = LINEAGE_GEOMETRY;

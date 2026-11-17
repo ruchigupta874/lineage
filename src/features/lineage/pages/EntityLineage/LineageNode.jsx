@@ -11,6 +11,7 @@ import {
   LEVEL,
   LINEAGE_COPY,
 } from '@/features/lineage/constants';
+import { columnId } from '@/features/lineage/lineageGraph';
 import { joinMeta } from '@/utils/format';
 import { assetShape } from './assetShape';
 import ColumnList from './ColumnList';
@@ -68,6 +69,7 @@ export default function LineageNode({ node, lineage }) {
   const isColumnLevel = lineage.level === LEVEL.column;
   const isOpen = Boolean(node.card?.rows);
   const isSelected = node.id === lineage.selected?.id;
+  const isFocus = node.id === lineage.focus?.id;
   const sides = lineage.sides.get(node.id);
   const meta = joinMeta(
     `${node.columns.length} cols`,
@@ -81,15 +83,13 @@ export default function LineageNode({ node, lineage }) {
       style={{ left: node.x, top: node.y, height: node.height }}
       data-layer={node.layer}
       data-level={lineage.level}
-      data-focus={node.id === lineage.focus.id || undefined}
+      data-focus={isFocus || undefined}
       data-selected={isSelected || undefined}
       data-dimmed={(lineage.path && !lineage.path.nodeIds.has(node.id)) || undefined}
       onMouseEnter={() => lineage.hover(node.id)}
       onMouseLeave={() => lineage.hover(null)}
     >
-      {node.id === lineage.focus.id && (
-        <span className={styles.focusTag}>{LINEAGE_COPY.focusTag}</span>
-      )}
+      {isFocus && <span className={styles.focusTag}>{LINEAGE_COPY.focusTag}</span>}
       <div className={styles.card}>
         <button
           type="button"
@@ -124,7 +124,11 @@ export default function LineageNode({ node, lineage }) {
           </button>
         )}
         {isOpen && (
-          <ColumnList card={node.card} onToggleAll={() => lineage.toggleAllColumns(node.id)} />
+          <ColumnList
+            card={node.card}
+            onToggleAll={() => lineage.toggleAllColumns(node.id)}
+            onTrace={(name) => lineage.traceColumn(columnId(node.id, name))}
+          />
         )}
       </div>
       {DIRECTIONS.map((direction) => (
@@ -145,7 +149,7 @@ LineageNode.propTypes = {
   node: assetShape.isRequired,
   lineage: PropTypes.shape({
     level: PropTypes.oneOf(Object.values(LEVEL)).isRequired,
-    focus: assetShape.isRequired,
+    focus: assetShape,
     selected: assetShape,
     path: PropTypes.shape({ nodeIds: PropTypes.instanceOf(Set).isRequired }),
     sides: PropTypes.instanceOf(Map).isRequired,
@@ -155,5 +159,6 @@ LineageNode.propTypes = {
     toggle: PropTypes.func.isRequired,
     toggleColumns: PropTypes.func.isRequired,
     toggleAllColumns: PropTypes.func.isRequired,
+    traceColumn: PropTypes.func.isRequired,
   }).isRequired,
 };

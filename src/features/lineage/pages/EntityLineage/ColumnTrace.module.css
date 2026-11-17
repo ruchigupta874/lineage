@@ -1,0 +1,214 @@
+/* ---- trace cards ----
+   The rows keep ColumnList's geometry exactly — list padding 6, rows 26, the
+   foot 30 — because traceLayout.js places each line at a row's middle from
+   those numbers before anything renders. */
+.list {
+  flex: none;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* A column on the path: tinted, with a bar down its left edge, so the path
+   reads down a card as well as across the canvas. The 1px transparent border
+   parts two path rows that sit together without moving either. */
+.pathRow,
+.contextRow {
+  position: relative;
+  width: calc(100% - 8px);
+  height: 26px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 4px;
+  padding: 0 8px 0 11px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background-clip: padding-box;
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+  text-align: left;
+}
+
+.pathRow {
+  background-color: var(--accent-tint-2);
+  color: var(--accent-hover);
+  font-weight: 500;
+  transition:
+    background-color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+
+.pathRow::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.pathRow:hover {
+  background-color: var(--accent-tint);
+}
+
+/* The traced column: filled with the brand ramp, its mark at the end. */
+.pathRow[data-traced] {
+  background: var(--gradient-accent) padding-box;
+  color: var(--bg-panel);
+  font-weight: 600;
+  box-shadow: 0 4px 12px -6px var(--accent-glow);
+}
+
+.pathRow[data-traced]::before {
+  display: none;
+}
+
+.pathRow[data-traced] .rowType {
+  color: color-mix(in srgb, var(--bg-panel) 80%, transparent);
+}
+
+.contextRow {
+  color: var(--text-5);
+}
+
+.rowName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowType {
+  flex: none;
+  font-size: var(--fs-tiny);
+  color: var(--text-5);
+}
+
+.pathRow .rowType {
+  color: var(--accent);
+  opacity: 0.75;
+}
+
+.rowMark {
+  flex: none;
+}
+
+.others {
+  flex: none;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-top: 1px solid var(--border-soft);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  background: var(--bg-subtle);
+  font-size: var(--fs-caption);
+  color: var(--text-4);
+}
+
+/* ---- banner ----
+   What is traced, over the canvas's top-left, and the way back out. */
+.banner {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 4;
+  max-width: calc(100% - 28px);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 11px 11px 11px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-card-hover);
+  animation: slide-down var(--t-base) both;
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.bannerText {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bannerTitle,
+.bannerMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bannerTitle {
+  font-size: var(--fs-base);
+  color: var(--text-3);
+}
+
+.bannerColumn {
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  color: var(--text-2);
+}
+
+.bannerColumn strong {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.bannerMeta {
+  font-size: var(--fs-small);
+  color: var(--text-4);
+}
+
+.exit {
+  flex: none;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px 0 12px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--gradient-accent);
+  color: var(--bg-panel);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  box-shadow: var(--shadow-accent);
+  transition:
+    transform var(--t-fast),
+    box-shadow var(--t-fast);
+}
+
+.exit:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-accent-lift);
+}
+
+.hint {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: var(--fs-caption);
+  color: var(--text-4);
+  pointer-events: none;
+}

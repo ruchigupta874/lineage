@@ -230,6 +230,19 @@
     var(--accent) 52%,
     var(--accent-blue) 100%
   );
+  /* Lineage lenses. Technical is the brand's own indigo, since it is the
+     lineage the product draws today; business is teal, a cool hue clear of
+     the three metals and of the warn/danger tones, so the two read apart at a
+     glance and neither looks like a layer or a state. */
+  --lens-technical: var(--accent);
+  --lens-technical-edge: var(--accent-border);
+  --lens-technical-glow: var(--accent-glow);
+  --lens-technical-sheen: var(--gradient-accent);
+  --lens-business: #0e7f86;
+  --lens-business-tint: #e5f4f5;
+  --lens-business-edge: #b6dee1;
+  --lens-business-glow: rgba(14, 127, 134, 0.32);
+  --lens-business-sheen: linear-gradient(105deg, #1fa79f 0%, #0e7f86 55%, #0b6470 100%);
   --gradient-rail: linear-gradient(
     90deg,
     var(--accent-violet) 0%,

@@ -1,0 +1,478 @@
+/* The search sits centred in the top bar; its suggestions drop over the
+   canvas below rather than pushing anything aside, and are gone the moment
+   a table is picked. */
+.search {
+  position: relative;
+  width: 100%;
+}
+
+/* ---- the field ----
+   The page's way in, so it is dressed like one: the brand's violet-to-blue
+   ramp as its outline (a white fill on the padding box, the gradient on the
+   border box) and a soft indigo glow beneath, both stronger once it has
+   focus. */
+.field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 10px 0 6px;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  background:
+    linear-gradient(var(--bg-panel), var(--bg-panel)) padding-box,
+    var(--gradient-accent) border-box;
+  box-shadow:
+    0 6px 18px -10px var(--accent-glow),
+    var(--shadow-raise);
+  transition: box-shadow var(--t-base);
+}
+
+.field:hover {
+  box-shadow:
+    0 8px 22px -10px var(--accent-glow),
+    0 0 0 3px var(--accent-glow-soft);
+}
+
+.field:focus-within {
+  box-shadow:
+    0 0 0 4px var(--accent-ring),
+    var(--shadow-accent);
+}
+
+.fieldIcon {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--gradient-accent);
+  box-shadow: 0 4px 10px -4px var(--accent-glow);
+  color: var(--bg-panel);
+}
+
+/* ---- the traced table ----
+   A chip in the table's own layer colours, the same tint and edge its icon
+   wears on the canvas, so the search and the picture plainly name one table. */
+.token {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 55%;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 3px 0 8px;
+  border-radius: 7px;
+  background: var(--layer-tint);
+  box-shadow: inset 0 0 0 1px var(--layer-edge);
+  color: var(--layer-ink);
+  animation: token-in var(--t-base) both;
+}
+
+@keyframes token-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Two chips share the room: the table and, beside it, its traced column. */
+.field[data-tokens='2'] .token {
+  max-width: 34%;
+}
+
+/* A traced column is in the accent, as it is filled in on the canvas, and in
+   the mono its name is set in everywhere else. */
+.token[data-kind='column'] {
+  background: var(--accent-tint);
+  box-shadow: inset 0 0 0 1px var(--accent-border);
+  color: var(--accent);
+}
+
+.token[data-kind='column'] .tokenName {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+.token[data-kind='column'] .tokenRemove {
+  color: var(--accent);
+}
+
+.token[data-kind='column'] .tokenRemove:hover {
+  background: var(--accent-border);
+}
+
+.tokenJoin {
+  flex: none;
+  margin: 0 -4px;
+  transform: rotate(-90deg);
+  color: var(--text-5);
+}
+
+.tokenIcon {
+  flex: none;
+}
+
+.tokenName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+
+.tokenRemove {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: none;
+  color: var(--layer-ink);
+  opacity: 0.75;
+  transition:
+    background var(--t-fast),
+    opacity var(--t-fast);
+}
+
+.tokenRemove:hover {
+  background: var(--layer-edge);
+  opacity: 1;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--fs-md);
+  color: var(--text);
+}
+
+.input::placeholder {
+  color: var(--text-4);
+}
+
+/* The field's own ring already shows focus; a second outline inside it is noise. */
+.input:focus-visible {
+  outline: none;
+}
+
+.input:disabled {
+  cursor: progress;
+}
+
+.kbd,
+.shortcut,
+.enterKey {
+  min-width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-4);
+}
+
+/* Says how to get here from the keyboard; once here, it has said it. */
+.field:focus-within .shortcut {
+  visibility: hidden;
+}
+
+.clear {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--text-4);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
+}
+
+.clear:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+/* ---- suggestions ---- */
+.popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: min(540px, calc(100vh - 80px));
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--bg-panel);
+  box-shadow: var(--shadow-pop);
+  animation: drop-in var(--t-fast) both;
+}
+
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  padding: 0 6px 6px;
+  overflow-y: auto;
+}
+
+/* Each kind of match under its own heading, with how many there are in all —
+   which can be more than are listed. */
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 8px 5px;
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  letter-spacing: var(--ls-label);
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+[role='group'] + [role='group'] .sectionHead {
+  margin-top: 4px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 12px;
+}
+
+.sectionCount {
+  min-width: 18px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-muted);
+  font-size: var(--fs-micro);
+  letter-spacing: 0;
+  color: var(--text-3);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px 8px 8px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+}
+
+.option[aria-selected='true'] {
+  background: var(--bg-hover);
+}
+
+.optionIcon {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius);
+  background: var(--layer-tint);
+  box-shadow: inset 0 0 0 1px var(--layer-edge);
+  color: var(--layer-ink);
+}
+
+.optionBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.optionName,
+.optionDetail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.optionName {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* A column's name is code, and set as code, so a column row and a table row
+   are told apart before either is read. */
+.optionName[data-mono] {
+  font-family: var(--font-mono);
+  font-size: var(--fs-small);
+}
+
+.optionDetail {
+  font-size: var(--fs-caption);
+  color: var(--text-4);
+}
+
+.typeTag {
+  font-family: var(--font-mono);
+  font-size: var(--fs-tiny);
+  color: var(--text-4);
+}
+
+.hit {
+  border-radius: 2px;
+  background: var(--accent-tint);
+  color: var(--accent-hover);
+}
+
+.optionAside {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.layerChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--layer-tint);
+  box-shadow: inset 0 0 0 1px var(--layer-edge);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  color: var(--layer-ink);
+}
+
+.layerDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--layer-sheen);
+}
+
+.viewing {
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-tint);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.health {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.health[data-tone='warn'] {
+  background: var(--warn-strong);
+}
+
+.health[data-tone='danger'] {
+  background: var(--danger);
+}
+
+/* Only the row Enter would trace shows the key, so the eye finds it. */
+.enterKey {
+  visibility: hidden;
+}
+
+.option[aria-selected='true'] .enterKey {
+  visibility: visible;
+}
+
+/* ---- nothing to list ---- */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 20px 22px;
+  text-align: center;
+}
+
+.emptyIcon {
+  margin-bottom: 4px;
+  color: var(--text-5);
+}
+
+.emptyTitle {
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.emptyHint {
+  font-size: var(--fs-small);
+  color: var(--text-4);
+}
+
+.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  font-size: var(--fs-small);
+  line-height: var(--lh-body);
+  color: var(--text-3);
+}
+
+.hintIcon {
+  margin-top: 2px;
+  color: var(--text-5);
+}
+
+.popFoot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-subtle);
+  font-size: var(--fs-caption);
+  color: var(--text-4);
+}
+
+.footKey {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.footMore {
+  margin-left: auto;
+}

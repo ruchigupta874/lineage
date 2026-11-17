@@ -5,6 +5,8 @@ const MARGIN = 28;
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+const NO_INSET = { top: 0, right: 0 };
+
 /**
  * The stretch of drawing to keep in view when it is too wide for the canvas:
  * the focus and whichever side of it holds more of the lineage. A gold table
@@ -28,8 +30,17 @@ function leadingSpan(layout, focus) {
  * past 100%. If it does not, stay at `minZoom` — readable beats complete.
  * Across, that keeps the focus and its larger side in view; down, it centres
  * the focus. Neither ever pulls blank canvas in past an end of the drawing.
+ *
+ * `inset` is canvas covered by something floating over it — a banner along
+ * the top, a drawer down the right — which the drawing is framed clear of.
  */
-export function frameView(layout, size, focusId, minZoom) {
+export function frameView(layout, size, focusId, minZoom, inset = NO_INSET) {
+  const room = { width: size.width - inset.right, height: size.height - inset.top };
+  const view = frameWithin(layout, room, focusId, minZoom);
+  return { ...view, y: view.y + inset.top };
+}
+
+function frameWithin(layout, size, focusId, minZoom) {
   const fit = Math.min(
     (size.width - MARGIN * 2) / layout.width,
     (size.height - MARGIN * 2) / layout.height,

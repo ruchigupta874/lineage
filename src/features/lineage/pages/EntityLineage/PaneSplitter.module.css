@@ -1,0 +1,81 @@
+/* One pixel of rule, with a wider grab area either side of it and a grip in
+   the middle so it reads as something that moves. The accent shows it is
+   held, or would be on a press. */
+.splitter {
+  position: relative;
+  z-index: 6;
+  flex: none;
+  width: 1px;
+  background: var(--border);
+  cursor: col-resize;
+  touch-action: none;
+  transition: background var(--t-fast);
+}
+
+.splitter::before {
+  content: '';
+  position: absolute;
+  inset: 0 -5px;
+}
+
+.splitter:hover,
+.splitter:focus-visible,
+.splitter[data-dragging] {
+  background: var(--accent);
+  outline: none;
+}
+
+.grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 40px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background:
+    linear-gradient(var(--text-5), var(--text-5)) 3.5px 50% / 1.5px 16px no-repeat,
+    linear-gradient(var(--text-5), var(--text-5)) 6.5px 50% / 1.5px 16px no-repeat,
+    var(--bg-panel);
+  box-shadow: var(--shadow-raise);
+  transition:
+    border-color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+
+.splitter:hover .grip,
+.splitter:focus-visible .grip,
+.splitter[data-dragging] .grip {
+  border-color: var(--accent);
+  background:
+    linear-gradient(var(--accent), var(--accent)) 3.5px 50% / 1.5px 16px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 6.5px 50% / 1.5px 16px no-repeat,
+    var(--bg-panel);
+  box-shadow:
+    0 0 0 3px var(--accent-ring),
+    var(--shadow-raise);
+}
+
+/* The split as a ratio, beside the grip while it is held. */
+.ratio {
+  position: absolute;
+  top: calc(50% - 46px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  background: var(--text);
+  color: var(--bg-panel);
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* While the rule is held, nothing on the page selects text or shows another cursor. */
+body:has(.splitter[data-dragging]) {
+  cursor: col-resize;
+  user-select: none;
+}

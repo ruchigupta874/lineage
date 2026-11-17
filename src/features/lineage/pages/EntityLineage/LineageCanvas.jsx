@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
-import { LAYER_META, LINEAGE_COPY } from '@/features/lineage/constants';
-import { assetShape } from './assetShape';
+import { LAYER_META } from '@/features/lineage/constants';
 import { frameView, holdInPlace, revealNode } from './canvasFrame';
 import LineageEdges from './LineageEdges';
-import LineageNode from './LineageNode';
 import { ZOOM, usePanZoom } from './usePanZoom';
 import ZoomControls from './ZoomControls';
 import styles from './LineageCanvas.module.css';
@@ -18,31 +16,78 @@ const HEAD_INSET = 12;
 /** Narrower than this on screen and a heading is all ellipsis; better left out. */
 const HEAD_MIN_WIDTH = 64;
 
+/** Whether two views are the same, give or take rounding. */
+const sameView = (a, b) =>
+  Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5 && Math.abs(a.k - b.k) < 1e-4;
+
 /**
  * The lineage drawn: a band per layer, the lines between tables, the tables.
  *
  * Band headings live outside the zoomed drawing, so they keep their size at
  * any zoom and pin to the edges of the canvas when the drawing is panned —
  * which layer a column is never scrolls out of sight.
+ *
+ * It draws whatever layout it is given — the table graph, or one column's
+ * trace — and leaves the tables themselves to `renderNode`. `frameOn` is the
+ * table a fresh view is framed around; `inset` is canvas covered by
+ * something floating over it, which the framing keeps the drawing clear of.
  */
-export default function LineageCanvas({ lineage }) {
-  const { layout, path, focus } = lineage;
+export default function LineageCanvas({
+  layout,
+  path,
+  label,
+  frameOn,
+  anchorId,
+  inset,
+  renderNode,
+  onBackgroundClick,
+}) {
   const { ref, size, view, setView, zoomBy, isPanning, panHandlers } = usePanZoom({
-    onBackgroundClick: () => lineage.select(null),
+    onBackgroundClick,
   });
+  // What the view was last set to, for which layout and at which canvas size,
+  // and whether the view has been panned or zoomed by hand since a fresh frame.
   const [framed, setFramed] = useState(null);
 
-  // Adjusted while rendering rather than in an effect, so a new layout is
-  // never painted at the old one's offset first. A layout made by opening or
-  // closing a card or a side keeps that table still — lifted only as far as
-  // it takes to show a card that just opened — and any other is framed afresh.
-  if (size.width > 0 && framed?.key !== layout.key) {
-    setFramed(layout);
-    setView((current) => {
-      if (!framed || !lineage.anchorId) return frameView(layout, size, focus.id, ZOOM.readable);
-      const held = holdInPlace(framed, layout, lineage.anchorId, current);
-      return revealNode(layout, lineage.anchorId, size, held);
-    });
+  // Adjusted while rendering rather than in an effect, so nothing is ever
+  // painted at a stale offset first.
+  //
+  // A new layout made by opening or closing a card or a side keeps that table
+  // still — lifted only as far as it takes to show a card that just opened —
+  // and any other is framed afresh.
+  //
+  // A new canvas size (the details pane opening or being dragged, the window
+  // or the browser zoom changing) frames the drawing afresh too, so it always
+  // fits the room it now has — unless it has been panned or zoomed by hand,
+  // which a resize must not undo: then what was in the middle stays there.
+  if (size.width > 0) {
+    let next = null;
+    let touched = false;
+    if (framed?.layout.key !== layout.key) {
+      if (!framed || !anchorId) next = frameView(layout, size, frameOn, ZOOM.readable, inset);
+      else {
+        touched = framed.touched || !sameView(view, framed.view);
+        next = revealNode(
+          layout,
+          anchorId,
+          size,
+          holdInPlace(framed.layout, layout, anchorId, view),
+        );
+      }
+    } else if (framed.size.width !== size.width || framed.size.height !== size.height) {
+      touched = framed.touched || !sameView(view, framed.view);
+      next = touched
+        ? {
+            ...view,
+            x: view.x + (size.width - framed.size.width) / 2,
+            y: view.y + (size.height - framed.size.height) / 2,
+          }
+        : frameView(layout, size, frameOn, ZOOM.readable, inset);
+    }
+    if (next) {
+      setFramed({ layout, size, view: next, touched });
+      setView(next);
+    }
   }
 
   const { x, y, k } = view;
@@ -76,7 +121,7 @@ export default function LineageCanvas({ lineage }) {
     >
       <div
         role="group"
-        aria-label={LINEAGE_COPY.canvas(focus.name)}
+        aria-label={label}
         className={styles.world}
         style={{
           width: layout.width,
@@ -96,9 +141,7 @@ export default function LineageCanvas({ lineage }) {
 
         <LineageEdges layout={layout} path={path} />
 
-        {layout.nodes.map((node) => (
-          <LineageNode key={node.id} node={node} lineage={lineage} />
-        ))}
+        {layout.nodes.map(renderNode)}
       </div>
 
       {heads.map(({ band, left, top, isPinned, width }) => (
@@ -121,25 +164,27 @@ export default function LineageCanvas({ lineage }) {
         zoom={k}
         onZoomIn={() => zoomBy(ZOOM.step)}
         onZoomOut={() => zoomBy(1 / ZOOM.step)}
-        onFit={() => setView(frameView(layout, size, focus.id, ZOOM.min))}
+        onFit={() => setView(frameView(layout, size, frameOn, ZOOM.min, inset))}
       />
     </div>
   );
 }
 
 LineageCanvas.propTypes = {
-  lineage: PropTypes.shape({
-    layout: PropTypes.shape({
-      key: PropTypes.string.isRequired,
-      width: PropTypes.number.isRequired,
-      height: PropTypes.number.isRequired,
-      nodes: PropTypes.array.isRequired,
-      edges: PropTypes.array.isRequired,
-      bands: PropTypes.array.isRequired,
-    }).isRequired,
-    focus: assetShape.isRequired,
-    path: PropTypes.shape({ edgeIds: PropTypes.instanceOf(Set).isRequired }),
-    anchorId: PropTypes.string,
-    select: PropTypes.func.isRequired,
+  layout: PropTypes.shape({
+    key: PropTypes.string.isRequired,
+    width: PropTypes.number.isRequired,
+    height: PropTypes.number.isRequired,
+    nodes: PropTypes.array.isRequired,
+    edges: PropTypes.array.isRequired,
+    bands: PropTypes.array.isRequired,
   }).isRequired,
+  path: PropTypes.shape({ edgeIds: PropTypes.instanceOf(Set).isRequired }),
+  label: PropTypes.string.isRequired,
+  frameOn: PropTypes.string,
+  anchorId: PropTypes.string,
+  inset: PropTypes.shape({ top: PropTypes.number, right: PropTypes.number }),
+  /** Draws one laid-out table; must return an element keyed by `node.id`. */
+  renderNode: PropTypes.func.isRequired,
+  onBackgroundClick: PropTypes.func,
 };

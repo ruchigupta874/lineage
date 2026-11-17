@@ -1,4 +1,4 @@
-import { DIRECTION, DIRECTIONS, LAYER_ORDER } from './constants';
+import { DIRECTION, DIRECTIONS } from './constants';
 
 /**
  * Lineage as a graph: each asset's inputs and readers, by id, built once.
@@ -18,17 +18,41 @@ export function indexLineage(assets) {
 
 export const edgeId = (from, to) => `${from}->${to}`;
 
-const neighboursOf = (graph, direction) =>
-  direction === DIRECTION.upstream ? graph.parents : graph.children;
+/** A column's id: its asset's id and its name, `silver.silver_campaign_fact.campaign_code`. */
+export const columnId = (assetId, name) => `${assetId}.${name}`;
 
 /**
- * What the page opens on before anything is picked: the first gold asset,
- * since lineage is mostly asked of what the business actually reads.
+ * Column lineage as a graph of the same shape as `indexLineage`'s, so the
+ * same walks (`tracePath`) run over it. Each column carries its asset, its
+ * type and how it was made; a bronze column, with no derivation, is raw.
  */
-export function defaultFocusId(assets) {
-  const lastLayer = LAYER_ORDER[LAYER_ORDER.length - 1];
-  return (assets.find((asset) => asset.layer === lastLayer) ?? assets[0])?.id ?? null;
+export function indexColumns(assets) {
+  const byId = new Map();
+  assets.forEach((asset) =>
+    asset.columns.forEach((column) => {
+      const id = columnId(asset.id, column.name);
+      byId.set(id, {
+        id,
+        assetId: asset.id,
+        name: column.name,
+        type: column.type,
+        derivation: asset.derivations?.[column.name] ?? null,
+      });
+    }),
+  );
+  const parents = new Map(
+    [...byId.values()].map((column) => [
+      column.id,
+      (column.derivation?.from ?? []).filter((id) => byId.has(id)),
+    ]),
+  );
+  const children = new Map([...byId.keys()].map((id) => [id, []]));
+  parents.forEach((inputs, id) => inputs.forEach((input) => children.get(input).push(id)));
+  return { byId, parents, children };
 }
+
+const neighboursOf = (graph, direction) =>
+  direction === DIRECTION.upstream ? graph.parents : graph.children;
 
 /**
  * What someone has opened or closed by hand, on top of the default picture.
