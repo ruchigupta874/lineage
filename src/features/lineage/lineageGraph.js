@@ -18,6 +18,32 @@ export function indexLineage(assets) {
 
 export const edgeId = (from, to) => `${from}->${to}`;
 
+/**
+ * `ids` with every asset after all of its inputs (`parentsOf(id)`, counted
+ * only among `ids`). Lineage should have no loops; if bad data has one, the
+ * assets caught in it come last, in the order given, rather than hanging the
+ * walk or vanishing.
+ */
+export function topologicalOrder(ids, parentsOf) {
+  const members = new Set(ids);
+  const waiting = new Map();
+  const readers = new Map(ids.map((id) => [id, []]));
+  ids.forEach((id) => {
+    const inputs = parentsOf(id).filter((parent) => members.has(parent));
+    waiting.set(id, inputs.length);
+    inputs.forEach((parent) => readers.get(parent).push(id));
+  });
+  const order = ids.filter((id) => waiting.get(id) === 0);
+  for (let i = 0; i < order.length; i += 1) {
+    readers.get(order[i]).forEach((reader) => {
+      waiting.set(reader, waiting.get(reader) - 1);
+      if (waiting.get(reader) === 0) order.push(reader);
+    });
+  }
+  const placed = new Set(order);
+  return [...order, ...ids.filter((id) => !placed.has(id))];
+}
+
 /** A column's id: its asset's id and its name, `silver.silver_campaign_fact.campaign_code`. */
 export const columnId = (assetId, name) => `${assetId}.${name}`;
 

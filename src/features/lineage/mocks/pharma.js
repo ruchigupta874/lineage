@@ -1,7 +1,10 @@
-import { ASSET_KIND, HEALTH, LAYER, TRANSFORM } from './constants';
+import { ASSET_KIND, HEALTH, LAYER, TRANSFORM } from '../constants';
+import { cols, columnsOf, made, withDerivations } from './helpers';
 
 /**
- * The brand360 catalog, bronze to gold.
+ * The Pharma workspace: the brand360 catalog, bronze to gold — every asset
+ * in a medallion layer, nothing outside the catalog. The clean case, which
+ * the other workspaces depart from.
  *
  * Each asset lists its own inputs (`upstream`), because that is how lineage is
  * captured — a job knows what it read, not who will read it. What reads an
@@ -40,13 +43,6 @@ const T = {
   hcpEngagement: 'gold.gold_hcp_engagement',
   salesPerformance: 'gold.gold_sales_performance',
 };
-
-/** `name type` pairs, so a schema reads as one line per column. */
-const cols = (...specs) =>
-  specs.map((spec) => {
-    const [name, type] = spec.split(' ');
-    return { name, type };
-  });
 
 const asset = (layer, name, fields) => ({
   id: `${layer}.${name}`,
@@ -452,10 +448,6 @@ const ASSETS = [
    they are where the data enters. Inputs are always columns of the asset's own
    `upstream` tables, so a column trace never leaves the table graph. */
 
-/** Columns of one asset, by name: `bronzeSales('quantity')`. */
-const columnsOf = (assetId) => (name) => `${assetId}.${name}`;
-const made = (kind, logic, ...from) => ({ kind, logic, from });
-
 const bronzeSales = columnsOf(T.bronzeSales);
 const productMaster = columnsOf(T.productMaster);
 const rwePatient = columnsOf(T.rwePatient);
@@ -787,7 +779,10 @@ const COLUMN_LINEAGE = {
   },
 };
 
-export const LINEAGE_ASSETS = ASSETS.map((entry) => ({
-  ...entry,
-  derivations: COLUMN_LINEAGE[entry.id] ?? {},
-}));
+export const PHARMA_WORKSPACE = {
+  id: 'pharma',
+  label: 'Pharma',
+  syncedAt: '2026-07-18T08:21:00',
+  layers: [{ id: LAYER.bronze }, { id: LAYER.silver }, { id: LAYER.gold }],
+  lineage: { assets: withDerivations(ASSETS, COLUMN_LINEAGE) },
+};

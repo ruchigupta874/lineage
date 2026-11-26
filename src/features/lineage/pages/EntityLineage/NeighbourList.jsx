@@ -28,7 +28,7 @@ export default function NeighbourList({ asset, direction, graph, onReveal }) {
                 <button
                   type="button"
                   className={styles.link}
-                  data-layer={other.layer}
+                  data-hue={other.layer.hue}
                   title={other.fqn}
                   onClick={() => onReveal(asset.id, direction, id)}
                 >

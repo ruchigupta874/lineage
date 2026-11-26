@@ -1,21 +1,36 @@
-import { LAYER_ORDER } from '@/features/lineage/constants';
-import { edgeId } from '@/features/lineage/lineageGraph';
+import { flowOrderOf, legendOf } from '@/features/lineage/catalog';
+import { edgeId, topologicalOrder } from '@/features/lineage/lineageGraph';
 
 /**
  * Pixel geometry for the lineage canvas.
  *
- * `columnGap` is the room an edge has to turn in between two columns, and
- * it is the same within a layer as between layers: a band's own `bandPad` is
- * what tells the layers apart. `headRoom` is the strip at the top of a band
- * its heading sits in, so the first row of tables never runs under it.
+ * `columnGap` is the room an edge has to turn in between two columns.
+ * `sidePad` is the margin beside the outermost columns. `headRoom` is the
+ * strip above the columns their headings sit in, so the first row of tables
+ * never runs under one.
  */
 export const LINEAGE_GEOMETRY = {
   nodeWidth: 228,
   nodeHeight: 54,
   rowGap: 16,
   columnGap: 96,
-  bandPad: 18,
+  sidePad: 18,
   headRoom: 48,
+  pad: 24,
+};
+
+/**
+ * The enterprise overview's geometry: one-line cards packed close, and no
+ * column headings — each card wears its layer's tint itself — so the whole
+ * workspace fits on one screen.
+ */
+export const COMPACT_GEOMETRY = {
+  nodeWidth: 200,
+  nodeHeight: 32,
+  rowGap: 14,
+  columnGap: 108,
+  sidePad: 0,
+  headRoom: 0,
   pad: 24,
 };
 
@@ -23,28 +38,63 @@ const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.
 const round = (value) => Math.round(value * 10) / 10;
 
 /**
- * Each asset's column. Layers take whole columns, left to right in medallion
- * order, so no column ever mixes two layers. Inside a layer, a table built
- * from another table of the same layer sits a column further on — the longest
- * such chain sets how many columns the layer takes.
+ * Each asset's column: how far along the flow it sits. Left to right is
+ * always the way the data moves, whatever the catalog calls its layers.
+ *
+ * An asset goes one column past the furthest of its inputs. The workspace's
+ * layer order adds a floor: an asset in an ordered layer sits past every
+ * asset of the layer before it, so ordered layers read left to right in
+ * whole columns — a medallion workspace looks as it always has. Assets with
+ * no place in the order (`flowOrderOf`: unclassified, outside the catalog, a
+ * layer the workspace doesn't list, or a label the flow contradicts) follow
+ * the flow alone, between or beside the layered ones.
+ *
+ * A source with no place in the order — a lookup table, a file a job picks
+ * up — moves right to just before its first reader, instead of waiting at
+ * the far left with a long line across the canvas.
+ *
+ * The floor cannot loop: the catalog has already taken the order away from
+ * every asset whose flow contradicts it, so following the flow never steps
+ * back down the order.
  */
 function rankAssets(ids, graph) {
-  const rank = new Map();
-  let offset = 0;
-  LAYER_ORDER.forEach((layer) => {
-    const members = new Set(ids.filter((id) => graph.byId.get(id).layer === layer));
-    if (members.size === 0) return;
-    const depth = new Map();
-    const depthOf = (id) => {
-      if (depth.has(id)) return depth.get(id);
-      depth.set(id, 0); // a cycle in bad data stops here instead of recursing forever
-      const inputs = graph.parents.get(id).filter((parent) => members.has(parent));
-      depth.set(id, inputs.length ? 1 + Math.max(...inputs.map(depthOf)) : 0);
-      return depth.get(id);
-    };
-    members.forEach((id) => rank.set(id, offset + depthOf(id)));
-    offset = Math.max(...[...members].map((id) => rank.get(id))) + 1;
+  const members = new Set(ids);
+  const inputsOf = (id) => graph.parents.get(id).filter((parent) => members.has(parent));
+  const readersOf = (id) => graph.children.get(id).filter((child) => members.has(child));
+  const orderOf = (id) => flowOrderOf(graph.byId.get(id));
+
+  // The floor, as extra inputs: each ordered layer present is fed by every
+  // asset of the ordered layer present before it.
+  const tiers = [...new Set(ids.map(orderOf).filter((order) => order !== null))].sort(
+    (a, b) => a - b,
+  );
+  const tierOf = new Map(tiers.map((order, index) => [order, index]));
+  const byTier = tiers.map(() => []);
+  ids.forEach((id) => {
+    if (orderOf(id) !== null) byTier[tierOf.get(orderOf(id))].push(id);
   });
+  const floorOf = (id) => {
+    const tier = orderOf(id) === null ? 0 : tierOf.get(orderOf(id));
+    return tier > 0 ? byTier[tier - 1] : [];
+  };
+  const before = (id) => [...inputsOf(id), ...floorOf(id)];
+
+  const rank = new Map();
+  topologicalOrder(ids, before).forEach((id) => {
+    const placed = before(id).filter((other) => rank.has(other));
+    rank.set(id, placed.length ? 1 + Math.max(...placed.map((other) => rank.get(other))) : 0);
+  });
+
+  ids.forEach((id) => {
+    const readers = readersOf(id);
+    if (orderOf(id) !== null || inputsOf(id).length > 0 || readers.length === 0) return;
+    rank.set(id, Math.max(rank.get(id), Math.min(...readers.map((other) => rank.get(other))) - 1));
+  });
+
+  // Moving sources right can empty a column; close it up.
+  const used = [...new Set(rank.values())].sort((a, b) => a - b);
+  const compact = new Map(used.map((value, index) => [value, index]));
+  ids.forEach((id) => rank.set(id, compact.get(rank.get(id))));
   return rank;
 }
 
@@ -90,8 +140,8 @@ function orderColumns(columns, graph) {
  * Positions are centres, and the spacing between two neighbours depends on
  * both their heights, because an opened table is as tall as its column list.
  */
-function placeRows(columns, graph, heightOf) {
-  const gap = (above, below) => (heightOf(above) + heightOf(below)) / 2 + LINEAGE_GEOMETRY.rowGap;
+function placeRows(columns, graph, heightOf, rowGap) {
+  const gap = (above, below) => (heightOf(above) + heightOf(below)) / 2 + rowGap;
   const y = new Map();
   columns.forEach((column) => {
     let cursor = 0;
@@ -137,33 +187,43 @@ export function edgePath(x1, y1, x2, y2) {
   return `M${x1} ${y1}C${x1 + bend} ${y1} ${end - bend} ${y2} ${end} ${y2}`;
 }
 
-const headHeight = () => LINEAGE_GEOMETRY.nodeHeight;
-
 /**
- * Where every table, line and layer band goes.
+ * Where every table, line and column heading goes.
  *
  * `heightOf` gives each card's height — the header alone unless its columns
  * are open. Table-to-table lines attach at the header, so opening a card
- * never moves where its lines meet it.
+ * never moves where its lines meet it. `geometry` is the spacing to lay out
+ * with: the lineage page's, unless the caller draws smaller cards.
+ *
+ * `heads` says, for each column, which layers its assets are in and how many
+ * of each, for a heading above it: one layer in a medallion column, a mix
+ * where the flow puts layers and unclassified assets side by side. A run of
+ * columns all in the same one layer has a single heading across them.
  *
  * Pure: the same graph, visible set, focus and heights always give the same
  * picture. `key` names that picture, so the canvas can tell a new layout from
  * a re-render of the old one. Nodes come back column by column, top to
  * bottom, which is also the order a keyboard should tab through them.
  */
-export function layoutLineage(graph, visible, focusId, heightOf = headHeight) {
-  const geo = LINEAGE_GEOMETRY;
+export function layoutLineage(
+  graph,
+  visible,
+  focusId,
+  { heightOf: cardHeight, geometry = LINEAGE_GEOMETRY } = {},
+) {
+  const geo = geometry;
+  const heightOf = cardHeight ?? (() => geo.nodeHeight);
   const ids = [...visible].sort();
   const rank = rankAssets(ids, graph);
   const columns = Array.from({ length: Math.max(...rank.values()) + 1 }, () => []);
   ids.forEach((id) => columns[rank.get(id)].push(id));
   orderColumns(columns, graph);
-  const rowY = placeRows(columns, graph, heightOf);
+  const rowY = placeRows(columns, graph, heightOf, geo.rowGap);
 
   const topOf = (id) => rowY.get(id) - heightOf(id) / 2;
   const top = Math.min(...ids.map(topOf));
   const span = Math.max(...ids.map((id) => topOf(id) + heightOf(id))) - top;
-  const xOf = (column) => geo.pad + geo.bandPad + column * (geo.nodeWidth + geo.columnGap);
+  const xOf = (column) => geo.pad + geo.sidePad + column * (geo.nodeWidth + geo.columnGap);
   const nodes = columns.flatMap((column, index) =>
     column.map((id) => ({
       ...graph.byId.get(id),
@@ -175,22 +235,22 @@ export function layoutLineage(graph, visible, focusId, heightOf = headHeight) {
   );
   const at = new Map(nodes.map((node) => [node.id, node]));
 
-  const bandHeight = geo.headRoom + span + geo.bandPad;
-  const bands = LAYER_ORDER.flatMap((layer) => {
-    const members = nodes.filter((node) => node.layer === layer);
-    if (members.length === 0) return [];
-    const first = Math.min(...members.map((node) => node.column));
-    const last = Math.max(...members.map((node) => node.column));
-    return [
-      {
-        layer,
-        count: members.length,
-        x: xOf(first) - geo.bandPad,
-        y: geo.pad,
-        width: xOf(last) - xOf(first) + geo.nodeWidth + geo.bandPad * 2,
-        height: bandHeight,
-      },
-    ];
+  // Neighbouring columns of one and the same layer share a heading, as a
+  // layer spanning two columns in a medallion workspace always has.
+  const heads = [];
+  columns.forEach((column, index) => {
+    const layers = legendOf(column.map((id) => graph.byId.get(id)));
+    const previous = heads.at(-1);
+    const continues =
+      previous?.layers.length === 1 &&
+      layers.length === 1 &&
+      previous.layers[0].key === layers[0].key;
+    if (continues) {
+      previous.width = xOf(index) + geo.nodeWidth - previous.x;
+      previous.layers = [{ ...layers[0], count: previous.layers[0].count + layers[0].count }];
+    } else {
+      heads.push({ index, x: xOf(index), y: geo.pad, width: geo.nodeWidth, layers });
+    }
   });
 
   // One line per table edge, header to header — at either level.
@@ -214,10 +274,10 @@ export function layoutLineage(graph, visible, focusId, heightOf = headHeight) {
 
   return {
     key: `${focusId}|${ids.map((id) => `${id}:${heightOf(id)}`).join(',')}`,
-    width: xOf(columns.length - 1) + geo.nodeWidth + geo.bandPad + geo.pad,
-    height: geo.pad * 2 + bandHeight,
+    width: xOf(columns.length - 1) + geo.nodeWidth + geo.sidePad + geo.pad,
+    height: geo.pad * 2 + geo.headRoom + span + geo.sidePad,
     nodes,
     edges,
-    bands,
+    heads,
   };
 }

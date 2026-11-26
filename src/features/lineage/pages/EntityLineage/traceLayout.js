@@ -51,7 +51,9 @@ export function layoutColumnTrace(graph, columns, tracedId, path) {
   const tables = new Set([...onPath].map((id) => columns.byId.get(id).assetId));
   const cards = new Map([...tables].map((id) => [id, traceCardFor(graph.byId.get(id), onPath)]));
   const traced = columns.byId.get(tracedId);
-  const base = layoutLineage(graph, tables, traced.assetId, (id) => cards.get(id).height);
+  const base = layoutLineage(graph, tables, traced.assetId, {
+    heightOf: (id) => cards.get(id).height,
+  });
   const nodes = base.nodes.map((node) => ({ ...node, card: cards.get(node.id) }));
   const at = new Map(nodes.map((node) => [node.id, node]));
 

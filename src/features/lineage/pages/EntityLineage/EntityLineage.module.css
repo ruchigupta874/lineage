@@ -6,35 +6,6 @@
   background: var(--bg-panel);
 }
 
-/* One set of properties per layer, so a dot, a tag and a tint all read from
-   the same four values. */
-.layout [data-layer='bronze'] {
-  --layer: var(--layer-bronze);
-  --layer-ink: var(--layer-bronze-ink);
-  --layer-on: var(--layer-bronze-on);
-  --layer-tint: var(--layer-bronze-tint);
-  --layer-edge: var(--layer-bronze-edge);
-  --layer-sheen: var(--layer-bronze-sheen);
-}
-
-.layout [data-layer='silver'] {
-  --layer: var(--layer-silver);
-  --layer-ink: var(--layer-silver-ink);
-  --layer-on: var(--layer-silver-on);
-  --layer-tint: var(--layer-silver-tint);
-  --layer-edge: var(--layer-silver-edge);
-  --layer-sheen: var(--layer-silver-sheen);
-}
-
-.layout [data-layer='gold'] {
-  --layer: var(--layer-gold);
-  --layer-ink: var(--layer-gold-ink);
-  --layer-on: var(--layer-gold-on);
-  --layer-tint: var(--layer-gold-tint);
-  --layer-edge: var(--layer-gold-edge);
-  --layer-sheen: var(--layer-gold-sheen);
-}
-
 /* ---- top bar ----
    What applies to the whole page: which lineage, and which table. A cool
    wash, a shade off the white stage below, so the switch and the search —
@@ -54,6 +25,39 @@
   padding: 0 20px 0 14px;
   border-bottom: 1px solid var(--border);
   background: var(--bg-entry);
+}
+
+/* Back to the enterprise overview, then the lens switch beside it. */
+.topLead {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.homeLink {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    var(--shadow-raise);
+  color: var(--text-3);
+  transition:
+    color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+
+.homeLink:hover {
+  box-shadow:
+    inset 0 0 0 1px var(--accent-border),
+    var(--shadow-card-hover);
+  color: var(--accent);
+  text-decoration: none;
 }
 
 /* ---- lens switch ----
@@ -240,6 +244,18 @@
   height: 7px;
   border-radius: 50%;
   background: var(--layer-sheen);
+}
+
+/* Outside the catalog: a dot drawn in dashes, as its cards are. */
+[data-hue='external'] > .layerDot {
+  border: 1px dashed var(--layer-edge);
+  background: none;
+}
+
+/* An asset outside the catalog in focus: its icon tile in dashes too. */
+.stageHead[data-hue='external'] .focusIcon {
+  border: 1px dashed var(--layer-edge);
+  box-shadow: none;
 }
 
 .focusBody {

@@ -1,30 +1,83 @@
 import { TONE } from '@/config/constants/common';
 import { pluralize } from '@/utils/format';
 
-/** The medallion layers, which are also the canvas's columns. */
+/**
+ * The medallion layers. A workspace names its own layers, in its own order
+ * (raw, curated, consumption…) and may name none; these three are only the
+ * ones every data team knows, so they keep their metals and their words
+ * wherever they turn up.
+ */
 export const LAYER = {
   bronze: 'bronze',
   silver: 'silver',
   gold: 'gold',
 };
 
-/** Left to right: the order data moves through them. */
-export const LAYER_ORDER = [LAYER.bronze, LAYER.silver, LAYER.gold];
-
+/** What a medallion layer is called and means, when a workspace doesn't say. */
 export const LAYER_META = {
   [LAYER.bronze]: { label: 'Bronze', blurb: 'Raw, as ingested' },
   [LAYER.silver]: { label: 'Silver', blurb: 'Cleaned and conformed' },
   [LAYER.gold]: { label: 'Gold', blurb: 'Business-ready' },
 };
 
+/**
+ * The two places an asset can be when it is in no layer: in the catalog with
+ * no layer set, or not in the catalog at all — seen only because a job reads
+ * or writes it. Prefixed so no catalog layer id can collide with them.
+ */
+export const NO_LAYER = {
+  unclassified: '~unclassified',
+  external: '~external',
+};
+
+export const NO_LAYER_META = {
+  [NO_LAYER.unclassified]: {
+    label: 'Unclassified',
+    blurb: 'No layer set in the catalog',
+    hue: 'plain',
+  },
+  [NO_LAYER.external]: {
+    label: 'Not in catalog',
+    blurb: 'Seen only in lineage',
+    hue: 'external',
+  },
+};
+
+/**
+ * Colours for the layers a workspace names for itself, handed out in its
+ * layer order (layers.css). Past five they come round again; the label
+ * still tells two layers apart.
+ */
+export const LAYER_HUES = ['teal', 'violet', 'blue', 'rose', 'green'];
+
+/** The metals, kept for the medallion layers in any workspace. */
+export const MEDALLION_HUES = {
+  [LAYER.bronze]: 'bronze',
+  [LAYER.silver]: 'silver',
+  [LAYER.gold]: 'gold',
+};
+
+/**
+ * Tables and views are what a catalog holds. Files, streams and APIs turn up
+ * mostly outside it — a CSV a job picks up, a topic it reads — and `unknown`
+ * is an input lineage names that nothing else describes.
+ */
 export const ASSET_KIND = {
   table: 'table',
   view: 'view',
+  file: 'file',
+  stream: 'stream',
+  api: 'api',
+  unknown: 'unknown',
 };
 
 export const ASSET_KIND_META = {
   [ASSET_KIND.table]: { label: 'Table', icon: 'table' },
   [ASSET_KIND.view]: { label: 'View', icon: 'code' },
+  [ASSET_KIND.file]: { label: 'File', icon: 'fileText' },
+  [ASSET_KIND.stream]: { label: 'Stream', icon: 'activity' },
+  [ASSET_KIND.api]: { label: 'API', icon: 'globe' },
+  [ASSET_KIND.unknown]: { label: 'Unknown', icon: 'circleHelp' },
 };
 
 /**
@@ -163,13 +216,38 @@ export const PROVENANCE_TAB_META = {
  * from the tables in view to the whole catalog.
  */
 export const LINEAGE_PARAM = 'asset';
+export const WORKSPACE_PARAM = 'workspace';
 export const LENS_PARAM = 'lens';
 export const LEVEL_PARAM = 'level';
 export const COLUMN_PARAM = 'column';
 export const TRACE_PARAM = 'trace';
 export const TRACE_ALL = 'all';
 
+/**
+ * The enterprise page, which the app opens on: every asset in a workspace at
+ * once, and the way into any one asset's lineage.
+ */
+export const ENTERPRISE_COPY = {
+  title: 'Enterprise Lineage',
+  subtitle: 'Every asset in the workspace and how data flows between them',
+  about:
+    'Every table and view in the workspace, bronze to gold. Search for a table, or click one, to open its lineage.',
+  assets: (count) => pluralize(count, 'asset'),
+  workspace: 'Workspace',
+  sync: 'Sync Lineage',
+  syncing: 'Syncing…',
+  lastSync: 'Last Sync:',
+  neverSynced: 'Not yet',
+  insights: 'Lineage insights · coming soon',
+  canvas: 'Lineage of every asset in the workspace',
+  openAsset: (name) => `Open the lineage of ${name}`,
+  legend: 'Assets by layer',
+  spotlight: (label) => `Highlight ${label} on the canvas`,
+  spotlightOff: (label) => `Stop highlighting ${label}`,
+};
+
 export const LINEAGE_COPY = {
+  backHome: 'Back to enterprise lineage',
   lens: 'Lineage type',
   businessTitle: 'Business lineage isn’t set up yet',
   businessBody: (name, level) =>
@@ -187,8 +265,7 @@ export const LINEAGE_COPY = {
   searchRemove: (name) => `Stop tracing ${name} and show all lineage`,
   searchRemoveColumn: (name) => `Stop tracing ${name}`,
   searchRecent: 'Recent',
-  searchHint: (count) =>
-    `Find any of the ${count} tables and views by name, layer, owner or source system.`,
+  searchHint: (count) => `Find any of the ${count} assets by name, layer, owner or source system.`,
   searchColumnsHint: (columns, tables) =>
     `Find any of the ${columns} columns across ${tables} tables by name. Add a table or a layer to narrow it, as in “silver age”.`,
   searchSectionColumns: 'Columns',
@@ -211,7 +288,7 @@ export const LINEAGE_COPY = {
   canvasAll: 'Lineage of every table',
 
   overviewTitle: 'All lineage',
-  overviewCount: (count) => `${count} tables and views`,
+  overviewCount: (count) => pluralize(count, 'asset'),
 
   focusTag: 'Focus',
   focusHere: 'Focus lineage here',
@@ -231,7 +308,14 @@ export const LINEAGE_COPY = {
   health: 'Health',
   source: 'Ingested from',
   job: 'Built by',
+  location: 'Location',
   noRows: 'n/a',
+  noValue: '—',
+  unclassifiedNote: 'No layer is set for this asset in the catalog.',
+  externalNote:
+    'Seen only in lineage: a job reads or writes it, but the catalog has no record of it, so there is no schema, owner or health to show.',
+  layerConflict:
+    'Its layer doesn’t match where its data flows — it reads from a later layer or feeds an earlier one — so it is placed by the flow.',
 
   openColumns: (name) => `Show columns of ${name}`,
   closeColumns: (name) => `Hide columns of ${name}`,
@@ -261,6 +345,7 @@ export const LINEAGE_COPY = {
   derivedFrom: 'Derived from',
   usedBy: 'Used by',
   noInputs: 'No input column: the pipeline sets this as rows load.',
+  fromOutside: (source) => `Comes from ${source}, which is outside the catalog.`,
   enteredHere: (source) => `This is where the data enters, from ${source}.`,
   notUsed: 'Nothing reads this column yet.',
   shownAbove: 'shown above',

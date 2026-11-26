@@ -7,7 +7,6 @@ import {
   DIRECTION_META,
   HEALTH,
   HEALTH_META,
-  LAYER_META,
   LEVEL,
   LINEAGE_COPY,
 } from '@/features/lineage/constants';
@@ -53,14 +52,16 @@ SideHandle.propTypes = {
 };
 
 /**
- * One table: its name, its shape, and an icon tinted in its layer's colour.
- * The band it sits in already says which layer it is, so the card carries no
- * stripe or tag of its own — only the tint, which still reads when dimmed.
+ * One asset: its name, its shape, and an icon tinted in its layer's colour —
+ * plain grey when the catalog sets no layer. Its column's heading names the
+ * layers, so the card carries no tag of its own — only the tint, which still
+ * reads when dimmed. An asset outside the catalog is a dashed ghost of a
+ * card, saying so where a table would count its columns.
  *
  * Hover — or keyboard focus — traces its whole path and dims the rest. Click
  * opens its details; double-click makes it the focus. A dot appears only when
  * something is wrong, so the eye goes straight to it. At column level a
- * chevron opens the card onto its columns.
+ * chevron opens the card onto its columns, when it has any.
  */
 export default function LineageNode({ node, lineage }) {
   const kind = ASSET_KIND_META[node.kind];
@@ -71,17 +72,18 @@ export default function LineageNode({ node, lineage }) {
   const isSelected = node.id === lineage.selected?.id;
   const isFocus = node.id === lineage.focus?.id;
   const sides = lineage.sides.get(node.id);
-  const meta = joinMeta(
-    `${node.columns.length} cols`,
-    node.rows ? `${node.rows} rows` : kind.label,
-  );
-  const kindName = `${LAYER_META[node.layer].label} ${kind.label.toLowerCase()}`;
+  // Outside the catalog there is no schema to count, only what it is.
+  const meta = node.catalogued
+    ? joinMeta(`${node.columns.length} cols`, node.rows ? `${node.rows} rows` : kind.label)
+    : joinMeta(node.layer.label, kind.label);
+  const kindName = `${node.layer.label} ${kind.label.toLowerCase()}`;
+  const hasColumns = node.columns.length > 0;
 
   return (
     <div
       className={styles.node}
       style={{ left: node.x, top: node.y, height: node.height }}
-      data-layer={node.layer}
+      data-hue={node.layer.hue}
       data-level={lineage.level}
       data-focus={isFocus || undefined}
       data-selected={isSelected || undefined}
@@ -111,7 +113,7 @@ export default function LineageNode({ node, lineage }) {
           </span>
           {!isHealthy && <span className={styles.health} data-tone={health.tone} />}
         </button>
-        {isColumnLevel && (
+        {isColumnLevel && hasColumns && (
           <button
             type="button"
             className={styles.columnToggle}

@@ -1,20 +1,23 @@
 import Skeleton from '@/components/ui/Skeleton';
-import { LAYER_ORDER } from '@/features/lineage/constants';
 import { LINEAGE_GEOMETRY } from './lineageLayout';
 import styles from './EntityLineage.module.css';
 
-/** Cards per layer while loading, narrowing toward gold the way a medallion does. */
-const SKELETON_ROWS = [['a', 'b', 'c', 'd', 'e'], ['a', 'b', 'c'], ['a']];
+/** Cards per column while loading, narrowing downstream the way most lineage does. */
+const SKELETON_COLUMNS = [
+  { key: 'sources', rows: ['a', 'b', 'c', 'd', 'e'] },
+  { key: 'middle', rows: ['a', 'b', 'c'] },
+  { key: 'end', rows: ['a'] },
+];
 
-/** The canvas's shape while the catalog loads: a heading and a stack of cards per layer. */
+/** The canvas's shape while the catalog loads: a heading and a stack of cards per column. */
 export default function LineageSkeleton() {
   return (
     <div className={styles.skeleton} aria-hidden="true">
-      {LAYER_ORDER.map((layer, index) => (
-        <div key={layer} className={styles.skeletonBand}>
+      {SKELETON_COLUMNS.map((column) => (
+        <div key={column.key} className={styles.skeletonBand}>
           <Skeleton width={72} height={11} />
           <div className={styles.skeletonRows}>
-            {SKELETON_ROWS[index].map((row) => (
+            {column.rows.map((row) => (
               <Skeleton
                 key={row}
                 width={LINEAGE_GEOMETRY.nodeWidth}

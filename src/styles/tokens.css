@@ -224,6 +224,59 @@
   --layer-gold-tint: #fef6dc;
   --layer-gold-edge: #f1dc98;
   --layer-gold-sheen: linear-gradient(135deg, #f8d96e 0%, #dca521 50%, #a97508 100%);
+  /* Layers a catalog names for itself — raw, curated, consumption and the
+     like. The metals stay reserved for bronze, silver and gold; these five
+     are handed out in a workspace's own layer order. Cool and mid-toned on
+     purpose, clear of amber and red, which mean health on every card, and of
+     the accent indigo, which means focus and selection. Same six roles as a
+     metal: -ink clears 4.5:1 on white and on -tint, -on is the glyph on
+     -sheen. */
+  --layer-teal: #0e7f86;
+  --layer-teal-ink: #0b5f65;
+  --layer-teal-on: #ffffff;
+  --layer-teal-tint: #e7f5f5;
+  --layer-teal-edge: #b6dee1;
+  --layer-teal-sheen: linear-gradient(135deg, #63c6c6 0%, #0e7f86 50%, #0a5a60 100%);
+  --layer-violet: #8a4cc9;
+  --layer-violet-ink: #6a34a3;
+  --layer-violet-on: #ffffff;
+  --layer-violet-tint: #f5eefc;
+  --layer-violet-edge: #dccbf1;
+  --layer-violet-sheen: linear-gradient(135deg, #c39cef 0%, #8a4cc9 50%, #5f2d97 100%);
+  --layer-blue: #2f6cc9;
+  --layer-blue-ink: #1f53a3;
+  --layer-blue-on: #ffffff;
+  --layer-blue-tint: #ebf2fd;
+  --layer-blue-edge: #cbdcf8;
+  --layer-blue-sheen: linear-gradient(135deg, #8cb4f0 0%, #2f6cc9 50%, #1d4a94 100%);
+  --layer-rose: #ae4763;
+  --layer-rose-ink: #8c3049;
+  --layer-rose-on: #ffffff;
+  --layer-rose-tint: #fceef2;
+  --layer-rose-edge: #f0cbd6;
+  --layer-rose-sheen: linear-gradient(135deg, #e295aa 0%, #ae4763 50%, #7c2a40 100%);
+  --layer-green: #3c7a2e;
+  --layer-green-ink: #2d5f22;
+  --layer-green-on: #ffffff;
+  --layer-green-tint: #eef6eb;
+  --layer-green-edge: #c9e2c1;
+  --layer-green-sheen: linear-gradient(135deg, #8cc47d 0%, #3c7a2e 50%, #285a1d 100%);
+  /* An asset the catalog holds but puts in no layer: plain, not alarming —
+     white where a layer would tint, graphite where it would colour. */
+  --layer-plain: #7a7a86;
+  --layer-plain-ink: var(--text-2);
+  --layer-plain-on: #ffffff;
+  --layer-plain-tint: var(--bg-panel);
+  --layer-plain-edge: var(--border-strong);
+  --layer-plain-sheen: linear-gradient(135deg, #bdbdc6 0%, #85858f 50%, #5f5f6a 100%);
+  /* An asset seen only in lineage, not in the catalog: a ghost of a card,
+     see-through and drawn in dashes by the components that show it. */
+  --layer-external: var(--text-5);
+  --layer-external-ink: var(--text-3);
+  --layer-external-on: var(--text-3);
+  --layer-external-tint: rgba(255, 255, 255, 0.55);
+  --layer-external-edge: var(--border-input);
+  --layer-external-sheen: var(--bg-panel);
   --gradient-accent: linear-gradient(
     105deg,
     var(--accent-violet) 0%,

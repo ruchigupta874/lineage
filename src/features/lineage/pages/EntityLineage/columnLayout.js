@@ -20,11 +20,17 @@ export const COLUMN_GEOMETRY = {
 /** `decimal(18,2)` reads as `decimal`: precision is for the details panel, not a 26px row. */
 export const shortType = (type) => type.replace(/\(.*\)$/, '');
 
-/** The columns an opened card lists, and how tall that makes it. Closed, it is the header alone. */
+/**
+ * The columns an opened card lists, and how tall that makes it. Closed, it is
+ * the header alone — as is an asset with no columns to list, such as one
+ * outside the catalog.
+ */
 function cardFor(asset, { isOpen, showAll }) {
   const geo = LINEAGE_GEOMETRY;
   const g = COLUMN_GEOMETRY;
-  if (!isOpen) return { height: geo.nodeHeight, rows: null, hidden: 0, hasFooter: false };
+  if (!isOpen || asset.columns.length === 0) {
+    return { height: geo.nodeHeight, rows: null, hidden: 0, hasFooter: false };
+  }
 
   const hasFooter = asset.columns.length > g.maxRows;
   const rows = showAll ? asset.columns : asset.columns.slice(0, g.maxRows);
@@ -51,6 +57,8 @@ export function layoutColumns(graph, visible, focusId, { open, showAll }) {
       cardFor(graph.byId.get(id), { isOpen: open.has(id), showAll: showAll.has(id) }),
     ]),
   );
-  const layout = layoutLineage(graph, visible, focusId, (id) => cards.get(id).height);
+  const layout = layoutLineage(graph, visible, focusId, {
+    heightOf: (id) => cards.get(id).height,
+  });
   return { ...layout, nodes: layout.nodes.map((node) => ({ ...node, card: cards.get(node.id) })) };
 }

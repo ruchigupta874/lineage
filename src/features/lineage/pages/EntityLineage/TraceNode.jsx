@@ -1,7 +1,8 @@
 import PropTypes from 'prop-types';
 import Icon from '@/components/ui/Icon';
-import { ASSET_KIND, ASSET_KIND_META, LAYER, LINEAGE_COPY } from '@/features/lineage/constants';
+import { ASSET_KIND, ASSET_KIND_META, LINEAGE_COPY } from '@/features/lineage/constants';
 import { columnId } from '@/features/lineage/lineageGraph';
+import { layerShape } from './assetShape';
 import { shortType } from './columnLayout';
 import canvas from './LineageCanvas.module.css';
 import styles from './ColumnTrace.module.css';
@@ -26,7 +27,7 @@ export default function TraceNode({ node, tracedId, onPick }) {
     <div
       className={canvas.node}
       style={{ left: node.x, top: node.y, height: node.height }}
-      data-layer={node.layer}
+      data-hue={node.layer.hue}
       data-focus={holdsTraced || undefined}
     >
       <div className={canvas.card}>
@@ -86,7 +87,7 @@ TraceNode.propTypes = {
     name: PropTypes.string.isRequired,
     fqn: PropTypes.string.isRequired,
     kind: PropTypes.oneOf(Object.values(ASSET_KIND)).isRequired,
-    layer: PropTypes.oneOf(Object.values(LAYER)).isRequired,
+    layer: layerShape.isRequired,
     x: PropTypes.number.isRequired,
     y: PropTypes.number.isRequired,
     height: PropTypes.number.isRequired,

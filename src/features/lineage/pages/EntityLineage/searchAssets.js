@@ -1,4 +1,4 @@
-import { ASSET_KIND_META, LAYER_META, LAYER_ORDER } from '@/features/lineage/constants';
+import { ASSET_KIND_META } from '@/features/lineage/constants';
 
 /**
  * Table search for the entity level: what someone typed, matched against the
@@ -21,8 +21,11 @@ const RANK = {
   description: 5,
 };
 
-/** Facts worth matching on, in the order a match is reported. */
-export const SEARCH_FACTS = ['owner', 'source', 'job'];
+/**
+ * Facts worth matching on, in the order a match is reported. `location` is
+ * what an asset outside the catalog has instead: its path, topic or URL.
+ */
+export const SEARCH_FACTS = ['owner', 'source', 'job', 'location'];
 
 /**
  * The query as lower-case words. A dot splits too, so a pasted
@@ -35,14 +38,22 @@ export const searchTerms = (query) =>
     .split(/[\s.]+/)
     .filter(Boolean);
 
+/** Whether `term` starts any word of a label, so "catalog" finds "Not in catalog". */
+const startsAWord = (label, term) =>
+  label
+    .toLowerCase()
+    .split(' ')
+    .some((word) => word.startsWith(term));
+
 function fit(asset, term) {
   const name = asset.name.toLowerCase();
   if (name.startsWith(term)) return { rank: RANK.namePrefix };
   if (name.split(/[_.]/).some((word) => word.startsWith(term))) return { rank: RANK.wordPrefix };
   if (name.includes(term)) return { rank: RANK.nameInside };
 
-  const tags = [LAYER_META[asset.layer].label, ASSET_KIND_META[asset.kind].label];
-  if (tags.some((tag) => tag.toLowerCase().startsWith(term))) return { rank: RANK.tag };
+  // The layer's label — any a catalog uses, or Unclassified, or Not in catalog.
+  const tags = [asset.layer.label, ASSET_KIND_META[asset.kind].label];
+  if (tags.some((tag) => startsAWord(tag, term))) return { rank: RANK.tag };
 
   const fact = SEARCH_FACTS.find((key) => asset[key]?.toLowerCase().includes(term));
   if (fact) return { rank: RANK.fact, field: fact };
@@ -107,14 +118,15 @@ function columnFit(column, asset, term) {
     return { rank: COLUMN_RANK.nameInside, onColumn: true };
   }
   if (asset.name.toLowerCase().includes(term)) return { rank: COLUMN_RANK.table };
-  if (LAYER_META[asset.layer].label.toLowerCase().startsWith(term)) {
+  if (startsAWord(asset.layer.label, term)) {
     return { rank: COLUMN_RANK.tag };
   }
   if (column.type.toLowerCase().startsWith(term)) return { rank: COLUMN_RANK.type };
   return null;
 }
 
-const layerIndex = (asset) => LAYER_ORDER.indexOf(asset.layer);
+/** The layers in display order: the workspace's flow order, then the rest. */
+const layerIndex = (asset) => asset.layer.index;
 
 /**
  * Column search for the column level: every column whose name fits, with the

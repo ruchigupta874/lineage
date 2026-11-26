@@ -1,0 +1,99 @@
+/* Layer colours.
+
+   Anything that wears a layer's colour — a card, a chip, a dot, a panel —
+   says which with `data-hue`, and reads the six properties below. The hue is
+   the layer's colour, not the layer: a workspace's own layers are handed hues
+   in their order (catalog.js), and a layer can be called anything.
+
+   Global rather than per module, so every component colours a layer the same
+   way without repeating the table. */
+
+[data-hue='bronze'] {
+  --layer: var(--layer-bronze);
+  --layer-ink: var(--layer-bronze-ink);
+  --layer-on: var(--layer-bronze-on);
+  --layer-tint: var(--layer-bronze-tint);
+  --layer-edge: var(--layer-bronze-edge);
+  --layer-sheen: var(--layer-bronze-sheen);
+}
+
+[data-hue='silver'] {
+  --layer: var(--layer-silver);
+  --layer-ink: var(--layer-silver-ink);
+  --layer-on: var(--layer-silver-on);
+  --layer-tint: var(--layer-silver-tint);
+  --layer-edge: var(--layer-silver-edge);
+  --layer-sheen: var(--layer-silver-sheen);
+}
+
+[data-hue='gold'] {
+  --layer: var(--layer-gold);
+  --layer-ink: var(--layer-gold-ink);
+  --layer-on: var(--layer-gold-on);
+  --layer-tint: var(--layer-gold-tint);
+  --layer-edge: var(--layer-gold-edge);
+  --layer-sheen: var(--layer-gold-sheen);
+}
+
+[data-hue='teal'] {
+  --layer: var(--layer-teal);
+  --layer-ink: var(--layer-teal-ink);
+  --layer-on: var(--layer-teal-on);
+  --layer-tint: var(--layer-teal-tint);
+  --layer-edge: var(--layer-teal-edge);
+  --layer-sheen: var(--layer-teal-sheen);
+}
+
+[data-hue='violet'] {
+  --layer: var(--layer-violet);
+  --layer-ink: var(--layer-violet-ink);
+  --layer-on: var(--layer-violet-on);
+  --layer-tint: var(--layer-violet-tint);
+  --layer-edge: var(--layer-violet-edge);
+  --layer-sheen: var(--layer-violet-sheen);
+}
+
+[data-hue='blue'] {
+  --layer: var(--layer-blue);
+  --layer-ink: var(--layer-blue-ink);
+  --layer-on: var(--layer-blue-on);
+  --layer-tint: var(--layer-blue-tint);
+  --layer-edge: var(--layer-blue-edge);
+  --layer-sheen: var(--layer-blue-sheen);
+}
+
+[data-hue='rose'] {
+  --layer: var(--layer-rose);
+  --layer-ink: var(--layer-rose-ink);
+  --layer-on: var(--layer-rose-on);
+  --layer-tint: var(--layer-rose-tint);
+  --layer-edge: var(--layer-rose-edge);
+  --layer-sheen: var(--layer-rose-sheen);
+}
+
+[data-hue='green'] {
+  --layer: var(--layer-green);
+  --layer-ink: var(--layer-green-ink);
+  --layer-on: var(--layer-green-on);
+  --layer-tint: var(--layer-green-tint);
+  --layer-edge: var(--layer-green-edge);
+  --layer-sheen: var(--layer-green-sheen);
+}
+
+[data-hue='plain'] {
+  --layer: var(--layer-plain);
+  --layer-ink: var(--layer-plain-ink);
+  --layer-on: var(--layer-plain-on);
+  --layer-tint: var(--layer-plain-tint);
+  --layer-edge: var(--layer-plain-edge);
+  --layer-sheen: var(--layer-plain-sheen);
+}
+
+[data-hue='external'] {
+  --layer: var(--layer-external);
+  --layer-ink: var(--layer-external-ink);
+  --layer-on: var(--layer-external-on);
+  --layer-tint: var(--layer-external-tint);
+  --layer-edge: var(--layer-external-edge);
+  --layer-sheen: var(--layer-external-sheen);
+}

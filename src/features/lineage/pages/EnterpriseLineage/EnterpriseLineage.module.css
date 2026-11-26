@@ -1,0 +1,377 @@
+.page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-panel);
+}
+
+/* ---- header ----
+   Title left, the search in the middle (over the canvas its suggestions
+   drop onto), workspace and sync right; under the title, the legend, which
+   runs on under the search — a workspace can have many layers, and they
+   should fit on one line rather than stack. Above the canvas, so the
+   suggestions float over it. */
+.head {
+  position: relative;
+  z-index: 10;
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) minmax(320px, 560px) minmax(max-content, 1fr);
+  grid-template-areas:
+    'intro search controls'
+    'legend legend controls';
+  align-items: center;
+  column-gap: 32px;
+  row-gap: 9px;
+  padding: 16px 20px 14px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+/* Too narrow for three across: the search takes a row of its own below. */
+@media (max-width: 1180px) {
+  .head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'intro controls'
+      'legend controls'
+      'search search';
+  }
+}
+
+.intro {
+  grid-area: intro;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-size: var(--fs-display);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: var(--ls-title);
+  color: var(--text);
+}
+
+.about {
+  display: inline-grid;
+  place-items: center;
+  color: var(--text-4);
+  cursor: help;
+}
+
+.subtitle {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+
+.legendSlot {
+  grid-area: legend;
+  min-width: 0;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.total,
+.layerStat {
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.total {
+  padding: 0 9px;
+  background: var(--bg-muted);
+  color: var(--text-2);
+}
+
+/* Each layer's count is also a toggle that highlights its assets. Pressed,
+   its edge takes the layer's full colour and a soft ring of it. */
+.layerStat {
+  gap: 6px;
+  padding: 0 9px 0 8px;
+  border: 0;
+  background: var(--layer-tint);
+  box-shadow: inset 0 0 0 1px var(--layer-edge);
+  color: var(--layer-ink);
+  transition: box-shadow var(--t-fast);
+}
+
+.layerStat:hover {
+  box-shadow:
+    inset 0 0 0 1px var(--layer),
+    var(--shadow-raise);
+}
+
+.layerStat[aria-pressed='true'] {
+  box-shadow:
+    inset 0 0 0 1.5px var(--layer),
+    0 0 0 3px color-mix(in srgb, var(--layer) 18%, transparent);
+}
+
+.layerStat[data-hue='external'] {
+  background: var(--bg-panel);
+  box-shadow: none;
+  outline: 1px dashed var(--layer-edge);
+  outline-offset: -1px;
+}
+
+.layerStat[data-hue='external'][aria-pressed='true'] {
+  box-shadow: 0 0 0 3px var(--accent-glow-soft);
+  outline-color: var(--text-3);
+}
+
+.layerDot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--layer-sheen);
+}
+
+[data-hue='external'] > .layerDot {
+  border: 1px dashed var(--layer-edge);
+  background: none;
+}
+
+.layerCount {
+  margin-left: 2px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.searchSlot {
+  grid-area: search;
+  min-width: 0;
+}
+
+.controls {
+  grid-area: controls;
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.workspace {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.workspaceLabel {
+  font-size: var(--fs-small);
+  color: var(--text-4);
+}
+
+.selectWrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.select {
+  width: 144px;
+  height: 32px;
+  padding: 0 30px 0 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--bg-panel);
+  appearance: none;
+  font-size: var(--fs-base);
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+
+.select:hover {
+  border-color: var(--border-input);
+}
+
+.select:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+  outline: none;
+}
+
+.selectIcon {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+.divider {
+  width: 1px;
+  height: 28px;
+  background: var(--border);
+}
+
+.sync {
+  height: 32px;
+}
+
+/* Holds its place until what it opens is designed. */
+.insights {
+  cursor: default;
+}
+
+.lastSync {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-subtle);
+  font-size: var(--fs-small);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-2);
+}
+
+.lastSync strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ---- canvas ---- */
+.canvasArea {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* ---- cards ----
+   One line each: the layer's metal on the icon, its tint as the fill, its
+   ink for the name. Width and height are set inline from COMPACT_GEOMETRY,
+   which the lines are drawn to. The outline is an inset shadow, so it takes
+   no room. */
+.node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 8px 0 6px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--layer-tint);
+  box-shadow:
+    inset 0 0 0 1px var(--layer-edge),
+    var(--shadow-card);
+  color: var(--layer-ink);
+  text-align: left;
+  transition:
+    opacity var(--t-base),
+    box-shadow var(--t-fast);
+}
+
+.node:hover {
+  box-shadow:
+    inset 0 0 0 1px var(--layer),
+    var(--shadow-card-hover);
+}
+
+.node[data-dimmed] {
+  opacity: 0.38;
+}
+
+/* Not in the catalog: the ghost of a card — see-through over the dot grid,
+   outlined in dashes, its icon too. */
+.node[data-hue='external'] {
+  box-shadow: none;
+  outline: 1px dashed var(--layer-edge);
+  outline-offset: -1px;
+}
+
+.node[data-hue='external']:hover {
+  outline-color: var(--text-4);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.node[data-hue='external'] .nodeIcon {
+  border: 1px dashed var(--layer-edge);
+  box-shadow: none;
+}
+
+.nodeIcon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: var(--layer-sheen);
+  box-shadow: var(--shadow-raise);
+  color: var(--layer-on);
+}
+
+.nodeName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-tiny);
+  font-weight: 600;
+}
+
+.health {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.health[data-tone='warn'] {
+  background: var(--warn-strong);
+}
+
+.health[data-tone='danger'] {
+  background: var(--danger);
+}
+
+/* ---- loading ---- */
+.skeleton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 96px;
+  background: var(--bg-app);
+}
+
+.skeletonColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}

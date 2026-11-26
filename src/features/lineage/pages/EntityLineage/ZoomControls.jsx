@@ -8,12 +8,19 @@ import styles from './LineageCanvas.module.css';
 const EPSILON = 0.001;
 
 /**
- * Zoom out, the current zoom, zoom in, and fit. Anchored bottom-left: the
- * details panel opens on the right and would otherwise cover them.
+ * Zoom out, the current zoom, zoom in, and fit. Anchored bottom-left by
+ * default: the details panel opens on the right and would otherwise cover
+ * them. A canvas with no panel can put them bottom-right.
  */
-export default function ZoomControls({ zoom, onZoomIn, onZoomOut, onFit }) {
+export default function ZoomControls({ corner = 'left', zoom, onZoomIn, onZoomOut, onFit }) {
   return (
-    <div className={styles.controls} role="group" aria-label={LINEAGE_COPY.zoom} data-no-pan>
+    <div
+      className={styles.controls}
+      role="group"
+      aria-label={LINEAGE_COPY.zoom}
+      data-corner={corner}
+      data-no-pan
+    >
       <button
         type="button"
         className={styles.controlButton}
@@ -50,6 +57,7 @@ export default function ZoomControls({ zoom, onZoomIn, onZoomOut, onFit }) {
 }
 
 ZoomControls.propTypes = {
+  corner: PropTypes.oneOf(['left', 'right']),
   zoom: PropTypes.number.isRequired,
   onZoomIn: PropTypes.func.isRequired,
   onZoomOut: PropTypes.func.isRequired,

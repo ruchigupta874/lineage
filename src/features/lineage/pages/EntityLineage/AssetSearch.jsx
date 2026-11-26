@@ -5,13 +5,12 @@ import {
   ASSET_KIND_META,
   HEALTH,
   HEALTH_META,
-  LAYER_META,
   LEVEL,
   LINEAGE_COPY,
   TRANSFORM,
   TRANSFORM_META,
 } from '@/features/lineage/constants';
-import { assetShape } from './assetShape';
+import { assetShape, layerShape } from './assetShape';
 import { shortType } from './columnLayout';
 import { markMatches, searchAssets, searchColumns, searchTerms } from './searchAssets';
 import { useRecentAssets } from './useRecentAssets';
@@ -36,6 +35,7 @@ const FACT_LABEL = {
   owner: LINEAGE_COPY.owner,
   source: LINEAGE_COPY.source,
   job: LINEAGE_COPY.job,
+  location: LINEAGE_COPY.location,
 };
 
 /** True when a key press belongs to a field, so "/" types a slash there instead. */
@@ -82,12 +82,12 @@ function LayerChip({ layer }) {
   return (
     <span className={styles.layerChip}>
       <span className={styles.layerDot} />
-      {LAYER_META[layer].label}
+      {layer.label}
     </span>
   );
 }
 
-LayerChip.propTypes = { layer: PropTypes.string.isRequired };
+LayerChip.propTypes = { layer: layerShape.isRequired };
 
 /** One option's face: a table, or a column with the table it lives in. */
 function OptionFace({ option, terms, isCurrent }) {
@@ -164,9 +164,9 @@ OptionFace.propTypes = {
 };
 
 /** What is being traced, as a chip in the field, with its own way to stop. */
-function Token({ kind, layer, icon, label, title, removeLabel, onRemove }) {
+function Token({ kind, hue, icon, label, title, removeLabel, onRemove }) {
   return (
-    <span className={styles.token} data-kind={kind} data-layer={layer} title={title}>
+    <span className={styles.token} data-kind={kind} data-hue={hue} title={title}>
       <Icon name={icon} size={13} className={styles.tokenIcon} />
       <span className={styles.tokenName}>{label}</span>
       <button
@@ -185,7 +185,7 @@ function Token({ kind, layer, icon, label, title, removeLabel, onRemove }) {
 
 Token.propTypes = {
   kind: PropTypes.oneOf(Object.values(OPTION)).isRequired,
-  layer: PropTypes.string.isRequired,
+  hue: PropTypes.string.isRequired,
   icon: PropTypes.string.isRequired,
   label: PropTypes.string.isRequired,
   title: PropTypes.string.isRequired,
@@ -396,7 +396,7 @@ export default function AssetSearch({
                       aria-selected={isActive}
                       tabIndex={-1}
                       className={styles.option}
-                      data-layer={option.asset.layer}
+                      data-hue={option.asset.layer.hue}
                       onMouseDown={(event) => event.preventDefault()}
                       onMouseMove={() => !isActive && setActive(at)}
                       onClick={() => pick(option)}
@@ -451,7 +451,7 @@ export default function AssetSearch({
         {focus && (
           <Token
             kind={OPTION.table}
-            layer={focus.layer}
+            hue={focus.layer.hue}
             icon={ASSET_KIND_META[focus.kind].icon}
             label={focus.name}
             title={LINEAGE_COPY.searchTracing(focus.fqn)}
@@ -463,7 +463,7 @@ export default function AssetSearch({
         {traced && (
           <Token
             kind={OPTION.column}
-            layer={tracedAsset.layer}
+            hue={tracedAsset.layer.hue}
             icon="column"
             // Beside its own table's chip the column needs no table name.
             label={tracedAsset.id === focusId ? traced.name : `${tracedAsset.name}.${traced.name}`}

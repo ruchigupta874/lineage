@@ -382,6 +382,12 @@
   background: var(--layer-sheen);
 }
 
+/* Outside the catalog: a dot drawn in dashes, as its cards are. */
+[data-hue='external'] .layerDot {
+  border: 1px dashed var(--layer-edge);
+  background: none;
+}
+
 .viewing {
   padding: 2px 7px;
   border-radius: var(--radius-pill);

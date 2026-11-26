@@ -19,8 +19,8 @@ function leadingSpan(layout, focus) {
   const after = layout.nodes.filter((node) => node.x > focus.x).length;
   const isUpstreamFirst = before >= after;
   return isUpstreamFirst
-    ? { start: 0, end: focus.x + geo.nodeWidth + geo.bandPad + geo.pad, isUpstreamFirst }
-    : { start: focus.x - geo.bandPad - geo.pad, end: layout.width, isUpstreamFirst };
+    ? { start: 0, end: focus.x + geo.nodeWidth + geo.sidePad + geo.pad, isUpstreamFirst }
+    : { start: focus.x - geo.sidePad - geo.pad, end: layout.width, isUpstreamFirst };
 }
 
 /**
@@ -28,8 +28,9 @@ function leadingSpan(layout, focus) {
  *
  * Fit the whole lineage if it fits at `minZoom` or better, never enlarging
  * past 100%. If it does not, stay at `minZoom` — readable beats complete.
- * Across, that keeps the focus and its larger side in view; down, it centres
- * the focus. Neither ever pulls blank canvas in past an end of the drawing.
+ * Across, that keeps the focus and its larger side in view, or with no focus
+ * starts where the data does, at the sources; down, it centres the focus.
+ * Neither ever pulls blank canvas in past an end of the drawing.
  *
  * `inset` is canvas covered by something floating over it — a banner along
  * the top, a drawer down the right — which the drawing is framed clear of.
@@ -51,7 +52,8 @@ function frameWithin(layout, size, focusId, minZoom) {
   const inBounds = (room, length, offset) => clamp(offset, room - length * k, 0);
 
   let x = centred(size.width, layout.width);
-  if (focus && layout.width * k > size.width) {
+  if (!focus && layout.width * k > size.width) x = 0;
+  else if (focus && layout.width * k > size.width) {
     const { start, end, isUpstreamFirst } = leadingSpan(layout, focus);
     let offset;
     if ((end - start) * k <= size.width) offset = centred(size.width, end - start) - start * k;

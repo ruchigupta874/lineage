@@ -1,4 +1,7 @@
 import { useRef } from 'react';
+import { createSearchParams, Link } from 'react-router-dom';
+import Icon from '@/components/ui/Icon';
+import { ROUTES } from '@/config/constants/routes';
 import { LENS, LINEAGE_COPY } from '@/features/lineage/constants';
 import AssetDetail from './AssetDetail';
 import AssetSearch from './AssetSearch';
@@ -15,6 +18,7 @@ import { useDetailsShare } from './useDetailsShare';
 import { useLineageData } from './useLineageData';
 import { useLineageView } from './useLineageView';
 import { useTraceDetails } from './useTraceDetails';
+import { useWorkspace, withWorkspace } from './useWorkspace';
 import styles from './EntityLineage.module.css';
 
 const STAGE_ID = 'lineage-stage';
@@ -23,8 +27,9 @@ const lensTabId = (lens) => `lineage-lens-${lens}`;
 /**
  * Lineage: where a table's data came from, bronze to gold.
  *
- * The top bar holds the two things that apply to the whole page — technical or
- * business lineage, and the search that picks which table to trace. Below it,
+ * The top bar holds the way back to the enterprise overview and the two things
+ * that apply to the whole page — technical or business lineage, and the
+ * search that picks which table to trace. Below it,
  * the stage is the lens that is open: what is being traced, the level it is
  * read at, and the canvas. With nothing picked the canvas is the whole
  * catalog; with a table picked it is that table's lineage, inputs to the left
@@ -39,7 +44,8 @@ const lensTabId = (lens) => `lineage-lens-${lens}`;
  * This is the whole screen: it fills whatever it is placed in.
  */
 export default function EntityLineage() {
-  const { assets, isLoading } = useLineageData();
+  const [workspaceId] = useWorkspace();
+  const { assets, isLoading } = useLineageData(workspaceId);
   const lineage = useLineageView(assets);
   const { focus, selected, lens, trace } = lineage;
   const details = useTraceDetails(trace?.column.id ?? null);
@@ -92,7 +98,20 @@ export default function EntityLineage() {
   return (
     <main className={styles.layout}>
       <div className={styles.topBar}>
-        <LensTabs value={lens} onChange={lineage.setLens} idFor={lensTabId} panelId={STAGE_ID} />
+        <div className={styles.topLead}>
+          <Link
+            to={{
+              pathname: ROUTES.home,
+              search: `${createSearchParams(withWorkspace(workspaceId))}`,
+            }}
+            className={styles.homeLink}
+            aria-label={LINEAGE_COPY.backHome}
+            title={LINEAGE_COPY.backHome}
+          >
+            <Icon name="arrowLeft" size={15} />
+          </Link>
+          <LensTabs value={lens} onChange={lineage.setLens} idFor={lensTabId} panelId={STAGE_ID} />
+        </div>
         <AssetSearch
           assets={assets}
           columns={lineage.columns}

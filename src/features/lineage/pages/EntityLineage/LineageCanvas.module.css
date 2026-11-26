@@ -1,5 +1,5 @@
 /* ---- the canvas ----
-   A dot grid on the app's own grey, so the bands and cards read as sitting
+   A dot grid on the app's own grey, so the cards read as sitting
    on something. Its pitch and offset follow the drawing (set inline), so a pan
    moves the dots too and reads as movement rather than cards sliding. */
 .viewport {
@@ -25,75 +25,44 @@
   transform-origin: 0 0;
 }
 
-.viewport [data-layer='bronze'] {
-  --layer: var(--layer-bronze);
-  --layer-ink: var(--layer-bronze-ink);
-  --layer-tint: var(--layer-bronze-tint);
-  --layer-edge: var(--layer-bronze-edge);
-  --layer-sheen: var(--layer-bronze-sheen);
-}
-
-.viewport [data-layer='silver'] {
-  --layer: var(--layer-silver);
-  --layer-ink: var(--layer-silver-ink);
-  --layer-tint: var(--layer-silver-tint);
-  --layer-edge: var(--layer-silver-edge);
-  --layer-sheen: var(--layer-silver-sheen);
-}
-
-.viewport [data-layer='gold'] {
-  --layer: var(--layer-gold);
-  --layer-ink: var(--layer-gold-ink);
-  --layer-tint: var(--layer-gold-tint);
-  --layer-edge: var(--layer-gold-edge);
-  --layer-sheen: var(--layer-gold-sheen);
-}
-
-/* ---- layer bands ----
-   A frosted white lane, not a coloured box: the dot grid fades out behind
-   it, the layer's tint glows faintly down from the top, and the metal itself
-   shows only in the bar along the top edge. The tables are what should hold
-   the eye; the band only says which layer they belong to. */
-.band {
-  position: absolute;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, var(--layer-tint) 0, transparent 160px),
-    color-mix(in srgb, var(--bg-panel) 72%, transparent);
-  box-shadow: var(--shadow-card);
-}
-
-.band::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 4px;
-  background: var(--layer-sheen);
-}
-
-.layerHead {
+/* ---- column headings ----
+   Above each column, what it holds: its layer — name, count, what the layer
+   means — or, where the flow puts layers side by side, a chip for each. A
+   light backing lifts it off the dot grid; pinned to the canvas top, cards
+   scroll up underneath it and it frosts over them. */
+.columnHead {
   position: absolute;
   height: 26px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 14px;
+  gap: 12px;
+  padding: 0 10px;
   overflow: hidden;
   white-space: nowrap;
   border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--bg-app) 88%, transparent);
   pointer-events: none;
   transition:
     background var(--t-fast),
     box-shadow var(--t-fast);
 }
 
-/* Pinned to the canvas top, cards scroll up underneath it; a frosted backing
-   keeps it legible over them. At rest it sits in its band's own glow. */
-.layerHead[data-pinned] {
+.columnHead[data-pinned] {
   background: color-mix(in srgb, var(--bg-panel) 92%, transparent);
   box-shadow: var(--shadow-raise);
+}
+
+.headLayer {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* Alone in its column, a layer takes the width, and its blurb the rest. */
+.columnHead:not([data-mixed]) .headLayer {
+  flex: 1;
+  min-width: 0;
 }
 
 .layerDot {
@@ -103,6 +72,13 @@
   border-radius: 50%;
   background: var(--layer-sheen);
   box-shadow: 0 0 0 2px var(--layer-tint);
+}
+
+/* Outside the catalog: a dot drawn in dashes, as its cards are. */
+[data-hue='external'] > .layerDot {
+  border: 1px dashed var(--layer-edge);
+  background: none;
+  box-shadow: none;
 }
 
 .layerName {
@@ -213,6 +189,22 @@
     inset 0 0 0 1px var(--border),
     var(--shadow-card);
   transition: box-shadow var(--t-fast);
+}
+
+/* Not in the catalog: the ghost of a card — see-through, outlined in dashes
+   (an outline, like the inset shadow, takes no room), its icon too. Before
+   the hover, focus and selection rules, so their rings still show on it. */
+.node[data-hue='external'] .card {
+  background: var(--layer-tint);
+  box-shadow: none;
+  outline: 1px dashed var(--layer-edge);
+  outline-offset: -1px;
+}
+
+.node[data-hue='external'] .cardIcon {
+  border: 1px dashed var(--layer-edge);
+  background: var(--bg-panel);
+  box-shadow: none;
 }
 
 .node:hover .card {
@@ -440,6 +432,11 @@
   background: var(--bg-panel);
   box-shadow: var(--shadow-card-hover);
   cursor: default;
+}
+
+.controls[data-corner='right'] {
+  left: auto;
+  right: 14px;
 }
 
 .controlButton {

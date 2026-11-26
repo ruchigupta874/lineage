@@ -4,9 +4,10 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
  * Zoom limits. `readable` is the floor the canvas opens at: below it table
  * names stop being legible, so a lineage too big to fit opens centred on its
  * focus rather than shrunk to a thumbnail. Fit to screen may go lower, because
- * then someone asked to see everything.
+ * then someone asked to see everything — and `min` is low enough for a
+ * catalog twenty-odd hops wide to fit, as its shape if not its names.
  */
-export const ZOOM = { min: 0.3, max: 1.6, readable: 0.7, step: 1.2 };
+export const ZOOM = { min: 0.1, max: 1.6, readable: 0.7, step: 1.2 };
 
 /** Pointer travel, in pixels, before a press on the canvas counts as a drag. */
 const DRAG_SLOP = 3;
@@ -93,7 +94,7 @@ export function usePanZoom({ onBackgroundClick }) {
       const start = drag.current;
       drag.current = null;
       setIsPanning(false);
-      if (start && !start.moved) onBackgroundClick();
+      if (start && !start.moved) onBackgroundClick?.();
     },
   };
 

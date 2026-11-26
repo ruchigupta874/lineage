@@ -28,6 +28,8 @@ const columnShape = PropTypes.shape({
     kind: PropTypes.oneOf(Object.values(TRANSFORM)).isRequired,
     logic: PropTypes.string.isRequired,
     from: PropTypes.arrayOf(PropTypes.string).isRequired,
+    /** Where a value comes from when that is outside the catalog, so no column feeds it. */
+    outside: PropTypes.string,
   }),
 });
 
@@ -76,7 +78,7 @@ SqlCode.propTypes = { code: PropTypes.string.isRequired };
  */
 function ColumnRow({ column, graph, isRepeat, onTrace }) {
   const asset = graph.byId.get(column.assetId);
-  let detail = LINEAGE_COPY.rawFrom(asset.source);
+  let detail = asset.source ? LINEAGE_COPY.rawFrom(asset.source) : LINEAGE_COPY.noValue;
   if (isRepeat) detail = LINEAGE_COPY.shownAbove;
   else if (column.derivation) detail = firstStatement(column.derivation.logic);
 
@@ -84,7 +86,7 @@ function ColumnRow({ column, graph, isRepeat, onTrace }) {
     <button
       type="button"
       className={styles.row}
-      data-layer={asset.layer}
+      data-hue={asset.layer.hue}
       title={column.derivation?.logic ?? `${asset.fqn}.${column.name}`}
       onClick={() => onTrace(column.id)}
     >
@@ -182,11 +184,10 @@ function TechnicalProvenance({ column, asset, columns, graph, onTrace }) {
       />
     );
   } else {
-    derivedFrom = (
-      <p className={styles.empty}>
-        {asset.source ? LINEAGE_COPY.enteredHere(asset.source) : LINEAGE_COPY.noInputs}
-      </p>
-    );
+    let entry = LINEAGE_COPY.noInputs;
+    if (column.derivation?.outside) entry = LINEAGE_COPY.fromOutside(column.derivation.outside);
+    else if (asset.source) entry = LINEAGE_COPY.enteredHere(asset.source);
+    derivedFrom = <p className={styles.empty}>{entry}</p>;
   }
 
   return (

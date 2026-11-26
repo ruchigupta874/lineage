@@ -2,10 +2,9 @@ import PropTypes from 'prop-types';
 import Icon from '@/components/ui/Icon';
 import SegmentedControl from '@/components/ui/SegmentedControl';
 import Skeleton from '@/components/ui/Skeleton';
+import { legendOf } from '@/features/lineage/catalog';
 import {
   ASSET_KIND_META,
-  LAYER_META,
-  LAYER_ORDER,
   LENS,
   LEVEL,
   LEVELS,
@@ -17,7 +16,7 @@ import styles from './EntityLineage.module.css';
 
 const LEVEL_OPTIONS = LEVELS.map((id) => ({ id, label: LEVEL_META[id].label }));
 
-/** Heading and one line under it: the traced table, or the catalog as a whole. */
+/** Heading and one line under it: the traced table, or the catalog as a whole, layer by layer. */
 function Subject({ focus, reach, assets }) {
   if (!focus) {
     return (
@@ -31,11 +30,10 @@ function Subject({ focus, reach, assets }) {
           </div>
           <p className={styles.focusMeta}>
             {LINEAGE_COPY.overviewCount(assets.length)}
-            {LAYER_ORDER.map((layer) => (
-              <span key={layer} className={styles.layerStat} data-layer={layer}>
+            {legendOf(assets).map((layer) => (
+              <span key={layer.key} className={styles.layerStat} data-hue={layer.hue}>
                 <span className={styles.layerDot} />
-                {assets.filter((asset) => asset.layer === layer).length}{' '}
-                {LAYER_META[layer].label.toLowerCase()}
+                {layer.count} {layer.label.toLowerCase()}
               </span>
             ))}
           </p>
@@ -54,7 +52,7 @@ function Subject({ focus, reach, assets }) {
         <div className={styles.focusTitle}>
           <h1 className={styles.focusName}>{focus.name}</h1>
           <span className={styles.layerTag}>
-            {LAYER_META[focus.layer].label} · {kind.label}
+            {focus.layer.label} · {kind.label}
           </span>
         </div>
         <p className={styles.focusMeta}>
@@ -112,7 +110,7 @@ export default function StageHead({ focus, reach, assets, isLoading, lens, level
   }
 
   return (
-    <header className={styles.stageHead} data-layer={focus?.layer}>
+    <header className={styles.stageHead} data-hue={focus?.layer.hue}>
       <Subject focus={focus} reach={reach} assets={assets} />
       {lens === LENS.technical && (
         <p className={styles.hint}>
