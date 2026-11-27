@@ -196,8 +196,9 @@
   display: inline-flex;
 }
 
+/* As wide as its longest workspace name, and never narrower than the mockup's. */
 .select {
-  width: 144px;
+  min-width: 144px;
   height: 32px;
   padding: 0 30px 0 11px;
   border: 1px solid var(--border-strong);

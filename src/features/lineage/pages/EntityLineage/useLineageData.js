@@ -12,6 +12,9 @@ import { LINEAGE_WORKSPACES } from '@/features/lineage/mocks';
  * worked out, and what lineage names outside the catalog added as assets of
  * its own.
  *
+ * `layerBands` says whether the workspace's lineage page draws its layers as
+ * bands rather than naming them over each column.
+ *
  * `sync` stands in for asking the catalog to re-read lineage from the
  * pipelines: it takes a moment, then moves `syncedAt` to now. The assets stay
  * as they are, since the fixtures have nothing new to find.
@@ -28,6 +31,7 @@ export function useLineageData(workspaceId) {
   const [state, setState] = useState({
     workspaceId: null,
     assets: NO_ASSETS,
+    layerBands: false,
     syncedAt: null,
     isSyncing: false,
   });
@@ -40,6 +44,7 @@ export function useLineageData(workspaceId) {
         setState({
           workspaceId,
           assets: resolveCatalog(workspace),
+          layerBands: Boolean(workspace.layerBands),
           syncedAt: new Date(workspace.syncedAt),
           isSyncing: false,
         }),
@@ -65,6 +70,7 @@ export function useLineageData(workspaceId) {
   const isLoading = state.workspaceId !== workspaceId;
   return {
     assets: isLoading ? NO_ASSETS : state.assets,
+    layerBands: !isLoading && state.layerBands,
     syncedAt: isLoading ? null : state.syncedAt,
     isSyncing: !isLoading && state.isSyncing,
     isLoading,

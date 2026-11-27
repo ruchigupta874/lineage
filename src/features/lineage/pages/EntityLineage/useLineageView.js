@@ -77,8 +77,11 @@ const toggled = (set, id) => {
  * path, confined to the tables that were in view when it was picked — what
  * someone was looking at — until `trace=all` widens it to the whole catalog.
  * Picking another table, or another level, ends the trace.
+ *
+ * `bands` lays every picture out with its layers drawn as bands, for a
+ * workspace that asks for them.
  */
-export function useLineageView(assets) {
+export function useLineageView(assets, { bands = false } = {}) {
   const graph = useMemo(() => indexLineage(assets), [assets]);
   const columns = useMemo(() => indexColumns(assets), [assets]);
   const [params, setParams] = useSearchParams();
@@ -107,9 +110,13 @@ export function useLineageView(assets) {
   // Nothing to lay out only while the catalog is still loading.
   const layout = useMemo(() => {
     if (visible.size === 0) return null;
-    if (level === LEVEL.entity) return layoutLineage(graph, visible, focusId);
-    return layoutColumns(graph, visible, focusId, { open: state.open, showAll: state.showAll });
-  }, [graph, visible, focusId, level, state.open, state.showAll]);
+    if (level === LEVEL.entity) return layoutLineage(graph, visible, focusId, { bands });
+    return layoutColumns(graph, visible, focusId, {
+      open: state.open,
+      showAll: state.showAll,
+      bands,
+    });
+  }, [graph, visible, focusId, level, state.open, state.showAll, bands]);
   const sides = useMemo(
     () =>
       focusId
@@ -136,9 +143,9 @@ export function useLineageView(assets) {
       column: tracedColumn,
       path,
       beyond,
-      layout: layoutColumnTrace(graph, columns, tracedColumn.id, path),
+      layout: layoutColumnTrace(graph, columns, tracedColumn.id, path, { bands }),
     };
-  }, [graph, columns, tracedColumn, visible, wantsEndToEnd]);
+  }, [graph, columns, tracedColumn, visible, wantsEndToEnd, bands]);
 
   // Hover wins over the selection, so you can look along another path without
   // losing the table you have open.

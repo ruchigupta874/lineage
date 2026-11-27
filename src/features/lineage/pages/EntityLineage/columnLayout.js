@@ -48,9 +48,9 @@ function cardFor(asset, { isOpen, showAll }) {
  * as their column lists. Lines stay table to table and meet each card at its
  * header, so opening a card never moves where its lines land.
  *
- * `open` and `showAll` are sets of asset ids.
+ * `open` and `showAll` are sets of asset ids; `bands` draws layers as bands.
  */
-export function layoutColumns(graph, visible, focusId, { open, showAll }) {
+export function layoutColumns(graph, visible, focusId, { open, showAll, bands }) {
   const cards = new Map(
     [...visible].map((id) => [
       id,
@@ -59,6 +59,7 @@ export function layoutColumns(graph, visible, focusId, { open, showAll }) {
   );
   const layout = layoutLineage(graph, visible, focusId, {
     heightOf: (id) => cards.get(id).height,
+    bands,
   });
   return { ...layout, nodes: layout.nodes.map((node) => ({ ...node, card: cards.get(node.id) })) };
 }

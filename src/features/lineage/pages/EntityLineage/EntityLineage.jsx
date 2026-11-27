@@ -45,8 +45,8 @@ const lensTabId = (lens) => `lineage-lens-${lens}`;
  */
 export default function EntityLineage() {
   const [workspaceId] = useWorkspace();
-  const { assets, isLoading } = useLineageData(workspaceId);
-  const lineage = useLineageView(assets);
+  const { assets, isLoading, layerBands } = useLineageData(workspaceId);
+  const lineage = useLineageView(assets, { bands: layerBands });
   const { focus, selected, lens, trace } = lineage;
   const details = useTraceDetails(trace?.column.id ?? null);
   const [detailsShare, setDetailsShare] = useDetailsShare();

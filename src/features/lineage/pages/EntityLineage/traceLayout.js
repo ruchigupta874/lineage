@@ -43,16 +43,17 @@ const rowCentre = (node, index) => {
  * to each column it feeds — row to row, not header to header.
  *
  * `path` is `tracePath` over the column graph, already confined to whatever
- * scope the trace has. Returns the layout shape the canvas draws, plus the ids
- * of every column and line on the path.
+ * scope the trace has; `bands` draws layers as bands. Returns the layout
+ * shape the canvas draws, plus the ids of every column and line on the path.
  */
-export function layoutColumnTrace(graph, columns, tracedId, path) {
+export function layoutColumnTrace(graph, columns, tracedId, path, { bands } = {}) {
   const onPath = new Set([tracedId, ...path.upstream, ...path.downstream]);
   const tables = new Set([...onPath].map((id) => columns.byId.get(id).assetId));
   const cards = new Map([...tables].map((id) => [id, traceCardFor(graph.byId.get(id), onPath)]));
   const traced = columns.byId.get(tracedId);
   const base = layoutLineage(graph, tables, traced.assetId, {
     heightOf: (id) => cards.get(id).height,
+    bands,
   });
   const nodes = base.nodes.map((node) => ({ ...node, card: cards.get(node.id) }));
   const at = new Map(nodes.map((node) => [node.id, node]));

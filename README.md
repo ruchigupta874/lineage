@@ -131,6 +131,13 @@ each a different shape of catalog:
   tables are built with small `source` / `derive` / `rollup` helpers rather
   than column by column, and a check at load time throws if any column reads
   something that isn't a column of its table's inputs.
+- **Telecom (medallion)** — the same catalog, but knowing only bronze, silver
+  and gold: everything else is unclassified. It sets `layerBands`, so its
+  lineage page draws the layers as bands, the way the medallion canvas first
+  looked — a bronze, silver and gold lane, and a grey lane wherever
+  unclassified or uncatalogued assets sit between them (each joins the gap
+  just past the latest layer upstream of it, or, with none upstream, the gap
+  just before what it feeds). Its home page is drawn like the others.
 
 `useLineageData(workspaceId)` serves one behind a short `MOCK_LATENCY_MS`
 delay so the loading state is real, resolved through `resolveCatalog`. When an

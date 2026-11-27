@@ -52,6 +52,44 @@
   box-shadow: var(--shadow-raise);
 }
 
+/* At the top of a band it sits in the band's own glow, as band headings
+   always did; it needs a backing only once pinned over the cards. */
+.columnHead[data-in-band]:not([data-pinned]) {
+  background: none;
+}
+
+/* ---- layer bands ----
+   For a workspace that draws its layers as bands. A frosted white lane, not
+   a coloured box: the dot grid fades out behind it, the layer's tint glows
+   faintly down from the top, and the colour itself shows only in the bar
+   along the top edge. The tables are what should hold the eye; the band
+   only says which layer they belong to. The grey band — what sits between
+   layers — has a cool grey glow and a graphite bar. */
+.band {
+  position: absolute;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, var(--layer-tint) 0, transparent 160px),
+    color-mix(in srgb, var(--bg-panel) 72%, transparent);
+  box-shadow: var(--shadow-card);
+}
+
+.band[data-hue='plain'] {
+  background:
+    linear-gradient(180deg, var(--bg-muted) 0, transparent 160px),
+    color-mix(in srgb, var(--bg-panel) 60%, transparent);
+}
+
+.band::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--layer-sheen);
+}
+
 .headLayer {
   flex: none;
   display: inline-flex;
